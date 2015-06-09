@@ -10,18 +10,6 @@
             #                                                       #
             #########################################################
 
-send_notification() {
-  if [ "$1" == "critical" ]; then
-    ICON="software-update-urgent-symbolic"
-  elif [ "$1" == "normal" ]; then
-    ICON="dialog-warning-symbolic"
-  else
-    ICON="software-update-available-symbolic"
-  fi
-
-  notify-send --urgency="$1" --icon="$ICON" --app-name="$SCRIPT_NAME" "$2" "$3"
-}
-
 aur_check_update() {
   OLD_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
   makepkg -do > "$2/${1}_update.log" 2>&1
@@ -75,7 +63,19 @@ check_namcap() {
   fi
 }
 
-send_to_aur() {
+send_notification() {
+  if [ "$1" == "critical" ]; then
+    ICON="software-update-urgent-symbolic"
+  elif [ "$1" == "normal" ]; then
+    ICON="dialog-warning-symbolic"
+  else
+    ICON="software-update-available-symbolic"
+  fi
+
+  notify-send --urgency="$1" --icon="$ICON" --app-name="$SCRIPT_NAME" "$2" "$3"
+}
+
+update_aur() {
   echo "==> Pushing new version to AUR"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
@@ -147,7 +147,7 @@ for PKG in "$@"; do
     check_namcap "$PKG" "$DIR" &&
     { mksrcinfo &&
       if [ "$PUSH" == true ]; then
-        send_to_aur "$PKG" "$DIR" &&
+        update_aur "$PKG" "$DIR" &&
         if [ "$NOTIFY" == true ]; then
           send_notification "low" "Successfully updated $1" \
           "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)."
