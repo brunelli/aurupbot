@@ -11,8 +11,9 @@
             #########################################################
 
 aur_check_update() {
+  echo "==> Getting sources"
   OLD_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
-  makepkg -do > "$2/${1}_update.log" 2>&1
+  makepkg -do --skipchecksums > "$2/${1}_update.log" 2>&1
   NEW_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
 
   if [ "$OLD_PKGVER" == "$NEW_PKGVER" ]; then
