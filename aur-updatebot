@@ -1,0 +1,164 @@
+#!/bin/sh
+
+            #########################################################
+            #                                                       #
+            #                    AUR Update Bot                     #
+            #                                                       #
+            #   Version: 1.0 (09/06/2015)                           #
+            #   Author: Ian Brunelli <ian@brunelli.me>              #
+            #   URL: https://github.com/ianbrunelli/aur-updatebot   #
+            #                                                       #
+            #########################################################
+
+send_notification() {
+  if [ "$2" == "critical" ]; then
+    ICON="software-update-urgent-symbolic"
+  else
+    ICON="software-update-available-symbolic"
+  fi
+
+  notify-send --urgency="$1" --icon="$ICON" --app-name="$SCRIPT_NAME" "$2" "$3"
+}
+
+aur_check_update() {
+  OLD_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+  makepkg -do > "$2/${1}_update.log" 2>&1
+  NEW_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+
+  if [ "$OLD_PKGVER" == "$NEW_PKGVER" ]; then
+    echo "$1 is up-to-date ($NEW_PKGVER)."
+    return 70
+  else
+    echo "$1 is out-of-date ($OLD_PKGVER -> $NEW_PKGVER)"
+  fi
+}
+
+build_package() {
+  echo "==> Building package..."
+  makepkg > "$2/${1}_makepkg.log" 2>&1
+
+  if [ $? != 0 ]; then
+    echo "Build failed. See \"$2/${1}_makepkg.log\" for details." 2>&2
+    if [ "$NOTIFY" == true ]; then
+      send_notification "critical" "Error updating $1" \
+      "Build failed. See \"$2/${1}_makepkg.log\" for details."
+    fi
+    return 2
+  else
+    echo "Successfully built."
+  fi
+}
+
+check_namcap() {
+  echo "==> Checking package with namcap..."
+  namcap "$1-$NEW_PKGVER-*.pkg.tar.xz" > "$2/${1}_namcap.log" 2>&1
+
+  NAMCAP_ERR=$( grep -c "$1 E:" "$2/${1}_namcap.log" )
+  NAMCAP_WAR=$( grep -c "$1 W:" "$2/${1}_namcap.log" )
+
+  if [ ${NAMCAP_ERR} -gt 0 ]; then
+    echo "Namcap returned ${NAMCAP_ERR} errors and ${NAMCAP_WAR} warnings." \
+         "See \"$2/${1}_namcap.log\" for details." 2>&2
+    if [ "$NOTIFY" == true ]; then
+      send_notification "critical" "Error updating $1" \
+      "Namcap returned ${NAMCAP_ERR} errors and ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
+    fi
+    return 1
+  elif [ ${NAMCAP_WAR} -gt 0 ]; then
+    echo "Namcap returned ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
+    if [ "$NOTIFY" == true ]; then
+      send_notification "normal" "Warning updating $1" \
+      "Namcap returned ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
+    fi
+  fi
+}
+
+send_to_aur() {
+  echo "==> Pushing new version to AUR..."
+
+  { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
+    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." 2>& 1 | tee -a "$2/${1}_git.log" &&
+    git push 2>&1 | tee -a "$2/${1}_git.log"
+  } ||
+  { echo "Pushing to AUR failed. See \"$2/${1}_git.log\" for details." 2>&2
+    if [ "$NOTIFY" == true ]; then
+      send_notification "critical" "Error updating $1" \
+      "Pushing to AUR failed. See \"$2/${1}_git.log\" for details."
+    fi
+  }
+}
+
+usage_guide() {
+  echo -e "Usage: $SCRIPT_NAME PKGNAME [ PKGNAME... ] [ OPTIONS ]\n" \
+          "\nOptions:" \
+          "\n  --disable-push \tDoesn't attempt to push the updated files to AUR." \
+          "\n  -n or --notify \tUse libnotify to send desktop notifications." \
+          "\n  -h or --help \t\tPrint this message."
+}
+
+NOTIFY=false
+PUSH=true
+SCRIPT_NAME=$( basename "$0" )
+DIR="/tmp/$SCRIPT_NAME"
+
+for arg in "$@"; do
+  case "${arg}" in
+    "-h" | "--help") shift
+      usage_guide
+      exit 0
+      ;;
+    "-n" | "--notify") shift
+      NOTIFY=true
+      ;;
+    "--disable-push") shift
+      PUSH=false
+      ;;
+    -*)
+      echo "`basename $0`: unrecognized option '$1'" >&2
+      usage_guide
+      exit 1
+      ;;
+    *)
+      set "$@" "$1"; shift
+      ;;
+  esac
+done
+
+if [ $# -gt 0 ]; then
+  mkdir -p "${DIR}"
+  cd "${DIR}"
+else
+  usage_guide
+fi
+
+for PKG in "$@"; do
+  unset OLD_PKGVER NEW_PKGVER NAMCAP_ERR NAMCAP_WAR
+
+  [ -e "$PKG" ] &&
+  rm -rf "$PKG"
+
+  echo "==> Cloning the AUR repository for $PKG..."
+  git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "$PKG" --quiet &&
+  { cd "$PKG"
+    aur_check_update "$PKG" "$DIR" &&
+    build_package "$PKG" "$DIR" &&
+    check_namcap "$PKG" "$DIR" &&
+    { mksrcinfo &&
+      if [ "$PUSH" == true ]; then
+        send_to_aur "$PKG" "$DIR" &&
+        if [ "$NOTIFY" == true ]; then
+          send_notification "normal" "Successfully updated $1" \
+          "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)."
+        fi
+      else
+        echo "The package was successfully updated in \"$DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
+        if [ "$NOTIFY" == true ]; then
+          send_notification "normal" "Successfully updated $1" \
+          "The package was updated in \"$DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
+        fi
+      fi
+    }
+  }
+done
+
+exit 0
