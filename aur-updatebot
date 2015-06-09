@@ -11,9 +11,9 @@
             #########################################################
 
 send_notification() {
-  if [ "$2" == "critical" ]; then
+  if [ "$1" == "critical" ]; then
     ICON="software-update-urgent-symbolic"
-  elif [ "$2" == "normal" ]; then
+  elif [ "$1" == "normal" ]; then
     ICON="dialog-warning-symbolic"
   else
     ICON="software-update-available-symbolic"
@@ -153,7 +153,7 @@ for PKG in "$@"; do
           "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)."
         fi
       else
-        echo "The package was successfully updated in \"$DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
+        echo -e "\nThe package was successfully updated in \"$DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
         if [ "$NOTIFY" == true ]; then
           send_notification "low" "Successfully updated $1" \
           "The package was updated in \"$DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
