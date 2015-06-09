@@ -2,7 +2,7 @@ AUR Update Bot
 ==============
 
 This script automatically updates packages that make use of the
-`[pkgver()` function](https://wiki.archlinux.org/index.php/VCS_package_guidelines#The_pkgver.28.29_function)
+[`pkgver()` function](https://wiki.archlinux.org/index.php/VCS_package_guidelines#The_pkgver.28.29_function)
 on its PKGBUILD.
 
 This is very usefull when maintaining [VCS-based packages](https://wiki.archlinux.org/index.php/VCS_package_guidelines)
