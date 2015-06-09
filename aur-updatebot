@@ -29,12 +29,12 @@ aur_check_update() {
     echo "$1 is up-to-date ($NEW_PKGVER)."
     return 70
   else
-    echo "$1 is out-of-date ($OLD_PKGVER -> $NEW_PKGVER)"
+    echo "$1 is out-of-date ($OLD_PKGVER -> $NEW_PKGVER)."
   fi
 }
 
 build_package() {
-  echo "==> Building package..."
+  echo "==> Building package"
   makepkg > "$2/${1}_makepkg.log" 2>&1
 
   if [ $? != 0 ]; then
@@ -50,7 +50,7 @@ build_package() {
 }
 
 check_namcap() {
-  echo "==> Checking package with namcap..."
+  echo "==> Checking package with namcap"
   namcap "$1-$NEW_PKGVER-*.pkg.tar.xz" > "$2/${1}_namcap.log" 2>&1
 
   NAMCAP_ERR=$( grep -c "$1 E:" "$2/${1}_namcap.log" )
@@ -74,7 +74,7 @@ check_namcap() {
 }
 
 send_to_aur() {
-  echo "==> Pushing new version to AUR..."
+  echo "==> Pushing new version to AUR"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
     git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." 2>& 1 | tee -a "$2/${1}_git.log" &&
@@ -137,7 +137,7 @@ for PKG in "$@"; do
   [ -e "$PKG" ] &&
   rm -rf "$PKG"
 
-  echo "==> Cloning the AUR repository for $PKG..."
+  echo "==> Cloning the AUR repository for $PKG"
   git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "$PKG" --quiet &&
   { cd "$PKG"
     aur_check_update "$PKG" "$DIR" &&
