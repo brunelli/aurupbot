@@ -13,9 +13,10 @@ Requires [AUR 4](https://wiki.archlinux.org/index.php/Arch_User_Repository#AUR_4
 ## How to use
 
 ```
-Usage: aur-update-bot PKGNAME [ PKGNAME... ] [ OPTIONS ]
+Usage: aur-updatebot PKGNAME [ PKGNAME... ] [ OPTIONS ]
  
-Options: 
+Options:
+  -d or --dir <path>    Save files in <path> instead of /tmp.
   --disable-push        Doesn't attempt to push the updated files to AUR. 
   -n or --notify        Use libnotify to send desktop notifications. 
   -h or --help 	        Print this message.
