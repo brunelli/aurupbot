@@ -93,6 +93,7 @@ update_aur() {
 usage_guide() {
   echo -e "Usage: $SCRIPT_NAME PKGNAME [ PKGNAME... ] [ OPTIONS ]\n" \
           "\nOptions:" \
+          "\n  -d or --dir <path> \tSave files in <path> instead of /tmp." \
           "\n  --disable-push \tDoesn't attempt to push the updated files to AUR." \
           "\n  -n or --notify \tUse libnotify to send desktop notifications." \
           "\n  -h or --help \t\tPrint this message."
@@ -101,10 +102,14 @@ usage_guide() {
 NOTIFY=false
 PUSH=true
 SCRIPT_NAME=$( basename "$0" )
-DIR="/tmp/$SCRIPT_NAME"
+DIR="/tmp/$SCRIPT_NAME-$USER"
 
 for arg in "$@"; do
   case "${arg}" in
+    "-d" | "--dir")
+      DIR=$( readlink -f "$2" )
+      shift 2
+      ;;
     "-h" | "--help") shift
       usage_guide
       exit 0
@@ -127,7 +132,8 @@ for arg in "$@"; do
 done
 
 if [ $# -gt 0 ]; then
-  mkdir -p "${DIR}"
+  mkdir -p "${DIR}" ||
+  exit 2
   cd "${DIR}"
 else
   usage_guide
@@ -137,7 +143,8 @@ for PKG in "$@"; do
   unset OLD_PKGVER NEW_PKGVER NAMCAP_ERR NAMCAP_WAR
 
   [ -e "$PKG" ] &&
-  rm -rf "$PKG"
+  { rm -rf "$PKG" ||
+    exit 3; }
 
   echo "==> Cloning the AUR repository for $PKG"
   git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "$PKG" --quiet &&
