@@ -13,7 +13,7 @@ Requires [AUR 4](https://wiki.archlinux.org/index.php/Arch_User_Repository#AUR_4
 ## How to use
 
 ```
-Usage: aur-updatebot PKGNAME [ PKGNAME... ] [ OPTIONS ]
+Usage: aurupbot PKGNAME [ PKGNAME... ] [ OPTIONS ]
  
 Options:
   -d or --dir <path>    Save files in <path> instead of /tmp.
