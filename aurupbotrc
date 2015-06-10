@@ -1,0 +1,12 @@
+##
+## Configuration file for AUR Update Bot
+##
+
+## Desktop notifications (uses libnotify)
+ENABLE_NOTIFY=false
+
+## Push changes to AUR
+ENABLE_PUSH=true
+
+## Default directory to save files
+# SAVE_DIR="$HOME/aurupbot"
