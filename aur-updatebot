@@ -70,6 +70,18 @@ check_namcap() {
   fi
 }
 
+get_user_packages() {
+  echo "==> Getting packages maintained by $1"
+
+  USER_PKGS=$( curl -s "https://aur4.archlinux.org/rpc.php?type=msearch&arg=$1" |
+               grep -Po '"Name":.*?[^\\],' |
+               cut -f 4 -d \" )
+
+  [ "$USER_PKGS" ] &&
+  echo $( wc -w <<< "$USER_PKGS" ) "package(s) found:" $USER_PKGS ||
+  echo "No package found." 2>&2
+}
+
 send_notification() {
   if [ "$1" == "critical" ]; then
     ICON="software-update-urgent-symbolic"
@@ -103,6 +115,7 @@ usage_guide() {
           "\n  -d or --dir <path> \tSave files in <path> instead of /tmp." \
           "\n  --disable-push \tDoesn't attempt to push the updated files to AUR." \
           "\n  -n or --notify \tUse libnotify to send desktop notifications." \
+          "\n  -u or --user <user> 	Check updates for all packages maintained by <user>." \
           "\n  -h or --help \t\tPrint this message."
 }
 
@@ -111,42 +124,50 @@ PUSH=true
 SCRIPT_NAME=$( basename "$0" )
 DIR="/tmp/$SCRIPT_NAME-$USER"
 
-for arg in "$@"; do
-  case "${arg}" in
-    "-d" | "--dir")
-      DIR=$( readlink -f "$2" )
-      shift 2
-      ;;
-    "-h" | "--help") shift
-      usage_guide
-      exit 0
-      ;;
-    "-n" | "--notify") shift
-      NOTIFY=true
-      ;;
-    "--disable-push") shift
-      PUSH=false
-      ;;
-    -*)
-      echo "`basename $0`: unrecognized option '$1'" >&2
-      usage_guide
-      exit 1
-      ;;
-    *)
-      set "$@" "$1"; shift
-      ;;
-  esac
+while [ $# -gt 0 ]; do
+  if [[ $1 =~ ^-(d|-dir)$ ]]; then
+    shift
+    DIR=$( readlink -f "$1" )
+    shift
+  elif [[ $1 =~ ^-(h|-help)$ ]]; then
+    usage_guide
+    exit 0
+  elif [[ $1 =~ ^-(n|-notify)$ ]]; then
+    NOTIFY=true
+    shift
+  elif [[ $1 =~ ^-(u|-user)$ ]]; then
+    shift
+    [ "$1" ] &&
+    AUR_USERS+=" $1"
+    shift
+  elif [ "$1" == "--disable-push" ]; then
+    PUSH=false
+    shift
+  elif [[ $1 =~ ^- ]]; then
+    echo "`basename $0`: unrecognized option '$1'" >&2
+    usage_guide
+    exit 1
+  else
+    PKGS+=" $1"
+    shift
+  fi
 done
 
-if [ $# -gt 0 ]; then
+for AUR_USER in ${AUR_USERS}; do
+  get_user_packages "$AUR_USER"
+  PKGS+=" $USER_PKGS"
+done
+
+if [ $( wc -w <<< "$PKGS" ) -gt 0 ] &&
+   [ "$DIR" ]; then
   mkdir -p "${DIR}" ||
   exit 2
   cd "${DIR}"
-else
+elif [[ ! $AUR_USERS ]]; then
   usage_guide
 fi
 
-for PKG in "$@"; do
+for PKG in ${PKGS}; do
   unset OLD_PKGVER NEW_PKGVER NAMCAP_ERR NAMCAP_WAR
 
   [ -e "$PKG" ] &&

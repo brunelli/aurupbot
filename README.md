@@ -19,6 +19,7 @@ Options:
   -d or --dir <path>    Save files in <path> instead of /tmp.
   --disable-push        Doesn't attempt to push the updated files to AUR. 
   -n or --notify        Use libnotify to send desktop notifications. 
+  -u or --user <user>   Check updates for all packages maintained by <user>.
   -h or --help 	        Print this message.
 ```
 
