@@ -36,7 +36,7 @@ build_package() {
 
   if [ $? != 0 ]; then
     echo "Build failed. See \"$2/${1}_makepkg.log\" for details." 2>&2
-    if [ "$NOTIFY" == true ]; then
+    if [ "$ENABLE_NOTIFY" == true ]; then
       send_notification "critical" "Error updating $1" \
       "Build failed. See \"$2/${1}_makepkg.log\" for details."
     fi
@@ -56,14 +56,14 @@ check_namcap() {
   if [ ${NAMCAP_ERR} -gt 0 ]; then
     echo "Namcap returned ${NAMCAP_ERR} errors and ${NAMCAP_WAR} warnings." \
          "See \"$2/${1}_namcap.log\" for details." 2>&2
-    if [ "$NOTIFY" == true ]; then
+    if [ "$ENABLE_NOTIFY" == true ]; then
       send_notification "critical" "Error updating $1" \
       "Namcap returned ${NAMCAP_ERR} errors and ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
     fi
     return 1
   elif [ ${NAMCAP_WAR} -gt 0 ]; then
     echo "Namcap returned ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
-    if [ "$NOTIFY" == true ]; then
+    if [ "$ENABLE_NOTIFY" == true ]; then
       send_notification "normal" "Warning updating $1" \
       "Namcap returned ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
     fi
@@ -99,11 +99,11 @@ update_aur() {
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
     git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." \
-               --author="AUR Update Bot <$AUR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
+               --author="AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
   { echo "Pushing to AUR failed. See \"$2/${1}_git.log\" for details." 2>&2
-    if [ "$NOTIFY" == true ]; then
+    if [ "$ENABLE_NOTIFY" == true ]; then
       send_notification "critical" "Error updating $1" \
       "Pushing to AUR failed. See \"$2/${1}_git.log\" for details."
     fi
@@ -120,22 +120,31 @@ usage_guide() {
           "\n  -h or --help \t\tPrint this message."
 }
 
-NOTIFY=false
-PUSH=true
 SCRIPT_NAME=$( basename "$0" )
-DIR="/tmp/$SCRIPT_NAME-$USER"
-AUR_EMAIL="mail@example.com"
+AUTHOR_EMAIL="mail@example.com"
+
+ENABLE_NOTIFY=false
+ENABLE_PUSH=true
+SAVE_DIR="/tmp/$SCRIPT_NAME-$USER"
+
+[ -f "/etc/aurupbotrc" ] &&
+source "/etc/aurupbotrc"
+
+[ -f "$HOME/.config/aurupbotrc" ] &&
+source "$HOME/.config/aurupbotrc"
+
+unset AUR_USERS PKGS
 
 while [ $# -gt 0 ]; do
   if [[ $1 =~ ^-(d|-dir)$ ]]; then
     shift
-    DIR=$( readlink -f "$1" )
+    SAVE_DIR=$( readlink -f "$1" )
     shift
   elif [[ $1 =~ ^-(h|-help)$ ]]; then
     usage_guide
     exit 0
   elif [[ $1 =~ ^-(n|-notify)$ ]]; then
-    NOTIFY=true
+    ENABLE_NOTIFY=true
     shift
   elif [[ $1 =~ ^-(u|-user)$ ]]; then
     shift
@@ -143,7 +152,7 @@ while [ $# -gt 0 ]; do
     AUR_USERS+=" $1"
     shift
   elif [ "$1" == "--disable-push" ]; then
-    PUSH=false
+    ENABLE_PUSH=false
     shift
   elif [[ $1 =~ ^- ]]; then
     echo "`basename $0`: unrecognized option '$1'" >&2
@@ -161,10 +170,10 @@ for AUR_USER in ${AUR_USERS}; do
 done
 
 if [ $( wc -w <<< "$PKGS" ) -gt 0 ] &&
-   [ "$DIR" ]; then
-  mkdir -p "${DIR}" ||
+   [ "$SAVE_DIR" ]; then
+  mkdir -p "${SAVE_DIR}" ||
   exit 2
-  cd "${DIR}"
+  cd "${SAVE_DIR}"
 elif [[ ! $AUR_USERS ]]; then
   usage_guide
 fi
@@ -179,21 +188,21 @@ for PKG in ${PKGS}; do
   echo "==> Cloning the AUR repository for $PKG"
   git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "$PKG" --quiet &&
   { cd "$PKG"
-    aur_check_update "$PKG" "$DIR" &&
-    build_package "$PKG" "$DIR" &&
-    check_namcap "$PKG" "$DIR" &&
+    aur_check_update "$PKG" "$SAVE_DIR" &&
+    build_package "$PKG" "$SAVE_DIR" &&
+    check_namcap "$PKG" "$SAVE_DIR" &&
     { mksrcinfo &&
-      if [ "$PUSH" == true ]; then
-        update_aur "$PKG" "$DIR" &&
-        if [ "$NOTIFY" == true ]; then
-          send_notification "low" "Successfully updated $1" \
+      if [ "$ENABLE_PUSH" == true ]; then
+        update_aur "$PKG" "$SAVE_DIR" &&
+        if [ "$ENABLE_NOTIFY" == true ]; then
+          send_notification "low" "Successfully updated $PKG" \
           "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)."
         fi
       else
-        echo -e "\nThe package was successfully updated in \"$DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
-        if [ "$NOTIFY" == true ]; then
-          send_notification "low" "Successfully updated $1" \
-          "The package was updated in \"$DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
+        echo -e "\nThe package was successfully updated in \"$SAVE_DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
+        if [ "$ENABLE_NOTIFY" == true ]; then
+          send_notification "low" "Successfully updated $PKG" \
+          "The package was updated in \"$SAVE_DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
         fi
       fi
     }
