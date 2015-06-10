@@ -98,7 +98,8 @@ update_aur() {
   echo "==> Pushing new version to AUR"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
-    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." 2>& 1 | tee -a "$2/${1}_git.log" &&
+    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." \
+               --author="AUR Update Bot <$AUR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
   { echo "Pushing to AUR failed. See \"$2/${1}_git.log\" for details." 2>&2
@@ -123,6 +124,7 @@ NOTIFY=false
 PUSH=true
 SCRIPT_NAME=$( basename "$0" )
 DIR="/tmp/$SCRIPT_NAME-$USER"
+AUR_EMAIL="mail@example.com"
 
 while [ $# -gt 0 ]; do
   if [[ $1 =~ ^-(d|-dir)$ ]]; then
