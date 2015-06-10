@@ -11,6 +11,12 @@
             #########################################################
 
 aur_check_update() {
+  echo "==> Checking for pkgver() function"
+  grep -e "^[[:space:]]*pkgver[[:space:]]*([[:space:]]*)[[:space:]]*{" -i PKGBUILD \
+  > /dev/null ||
+  { echo "No pkgver() function found." 2>&2
+    return 71; }
+
   echo "==> Getting sources"
   OLD_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
   makepkg -do --skipchecksums > "$2/${1}_update.log" 2>&1
