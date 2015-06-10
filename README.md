@@ -13,14 +13,19 @@ Requires [AUR 4](https://wiki.archlinux.org/index.php/Arch_User_Repository#AUR_4
 ## How to use
 
 ```
-Usage: aurupbot PKGNAME [ PKGNAME... ] [ OPTIONS ]
+Usage: aurupbot [ OPTIONS ] [ PKGNAMES ]
  
 Options:
   -d or --dir <path>    Save files in <path> instead of /tmp.
   --disable-push        Doesn't attempt to push the updated files to AUR. 
   -n or --notify        Use libnotify to send desktop notifications. 
   -u or --user <user>   Check updates for all packages maintained by <user>.
+  --config <file>       Source <file> for configuration.
   -h or --help 	        Print this message.
+
+Configuration:
+  The global configuration file can be found in /etc/aurupbotrc.
+  You can have an user specific file in ~/.config/aurupbotrc.
 ```
 
 ## How it works

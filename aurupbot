@@ -111,13 +111,17 @@ update_aur() {
 }
 
 usage_guide() {
-  echo -e "Usage: $SCRIPT_NAME PKGNAME [ PKGNAME... ] [ OPTIONS ]\n" \
+  echo -e "Usage: $SCRIPT_NAME [ OPTIONS ] [ PKGNAMES ]\n" \
           "\nOptions:" \
           "\n  -d or --dir <path> \tSave files in <path> instead of /tmp." \
           "\n  --disable-push \tDoesn't attempt to push the updated files to AUR." \
           "\n  -n or --notify \tUse libnotify to send desktop notifications." \
-          "\n  -u or --user <user> 	Check updates for all packages maintained by <user>." \
-          "\n  -h or --help \t\tPrint this message."
+          "\n  -u or --user <user> \tCheck updates for all packages maintained by <user>." \
+          "\n  --config <file> \tSource <file> for configuration." \
+          "\n  -h or --help \t\tPrint this message.\n" \
+          "\nConfiguration:" \
+          "\n  The global configuration file can be found in /etc/aurupbotrc." \
+          "\n  You can have an user specific file in ~/.config/aurupbotrc."
 }
 
 SCRIPT_NAME=$( basename "$0" )
@@ -136,7 +140,14 @@ source "$HOME/.config/aurupbotrc"
 unset AUR_USERS PKGS
 
 while [ $# -gt 0 ]; do
-  if [[ $1 =~ ^-(d|-dir)$ ]]; then
+  if [ "$1" == "--config" ]; then
+    shift
+    [ "$1" ] &&
+    { source "$( readlink -f "$1" )"
+      shift; } ||
+    { usage_guide
+      exit 1; }
+  elif [[ $1 =~ ^-(d|-dir)$ ]]; then
     shift
     SAVE_DIR=$( readlink -f "$1" )
     shift
