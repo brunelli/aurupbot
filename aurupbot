@@ -40,6 +40,9 @@ build_package() {
       send_notification "critical" "Error updating $1" \
       "Build failed. See \"$2/${1}_makepkg.log\" for details."
     fi
+    if [ "$EMAIL_REPORTS" == true ]; then
+      send_email "$1" "$2/${1}_makepkg.log" "Build failed."
+    fi
     return 2
   else
     echo "Successfully built."
@@ -54,18 +57,24 @@ check_namcap() {
   NAMCAP_WAR=$( grep -c "$1 W:" "$2/${1}_namcap.log" )
 
   if [ ${NAMCAP_ERR} -gt 0 ]; then
-    echo "Namcap returned ${NAMCAP_ERR} errors and ${NAMCAP_WAR} warnings." \
+    echo "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s)." \
          "See \"$2/${1}_namcap.log\" for details." 2>&2
     if [ "$ENABLE_NOTIFY" == true ]; then
       send_notification "critical" "Error updating $1" \
-      "Namcap returned ${NAMCAP_ERR} errors and ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
+      "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s). See \"$2/${1}_namcap.log\" for details."
+    fi
+    if [ "$EMAIL_REPORTS" == true ]; then
+      send_email "$1" "$2/${1}_namcap.log" "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s)."
     fi
     return 1
   elif [ ${NAMCAP_WAR} -gt 0 ]; then
-    echo "Namcap returned ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
+    echo "Namcap returned ${NAMCAP_WAR} warning(s). See \"$2/${1}_namcap.log\" for details."
     if [ "$ENABLE_NOTIFY" == true ]; then
       send_notification "normal" "Warning updating $1" \
-      "Namcap returned ${NAMCAP_WAR} warnings. See \"$2/${1}_namcap.log\" for details."
+      "Namcap returned ${NAMCAP_WAR} warning(s). See \"$2/${1}_namcap.log\" for details."
+    fi
+    if [ "$EMAIL_REPORTS" == true ]; then
+      send_email "$1" "$2/${1}_namcap.log" "Namcap returned ${NAMCAP_WAR} warning(s)."
     fi
   fi
 }
@@ -80,6 +89,11 @@ get_user_packages() {
   [ "$USER_PKGS" ] &&
   echo $( wc -w <<< "$USER_PKGS" ) "package(s) found:" $USER_PKGS ||
   echo "No package found." 2>&2
+}
+
+send_email() {
+  echo "==> Sending email to $REPORT_EMAIL"
+  mail -a "$2" -s "The package $1 requires your attention" "$REPORT_EMAIL" <<< "$3"
 }
 
 send_notification() {
@@ -107,6 +121,9 @@ update_aur() {
       send_notification "critical" "Error updating $1" \
       "Pushing to AUR failed. See \"$2/${1}_git.log\" for details."
     fi
+    if [ "$EMAIL_REPORTS" == true ]; then
+      send_email "$1" "$2/${1}_git.log" "Pushing to AUR failed."
+    fi
   }
 }
 
@@ -115,6 +132,7 @@ usage_guide() {
           "\nOptions:" \
           "\n  -d or --dir <path> \tSave files in <path> instead of /tmp." \
           "\n  --disable-push \tDoesn't attempt to push the updated files to AUR." \
+          "\n  --email <email> \tSend reports to <email>." \
           "\n  -n or --notify \tUse libnotify to send desktop notifications." \
           "\n  -u or --user <user> \tCheck updates for all packages maintained by <user>." \
           "\n  --config <file> \tSource <file> for configuration." \
@@ -125,8 +143,9 @@ usage_guide() {
 }
 
 SCRIPT_NAME=$( basename "$0" )
-AUTHOR_EMAIL="mail@example.com"
+AUTHOR_EMAIL="$( git config user.email 2> /dev/null )"
 
+EMAIL_REPORTS=false
 ENABLE_NOTIFY=false
 ENABLE_PUSH=true
 SAVE_DIR="/tmp/$SCRIPT_NAME-$USER"
@@ -141,16 +160,22 @@ unset AUR_USERS PKGS
 
 while [ $# -gt 0 ]; do
   if [ "$1" == "--config" ]; then
-    shift
-    [ "$1" ] &&
-    { source "$( readlink -f "$1" )"
-      shift; } ||
+    [ "$2" ] &&
+    { source "$( readlink -f "$2" )"
+      shift 2; } ||
     { usage_guide
       exit 1; }
   elif [[ $1 =~ ^-(d|-dir)$ ]]; then
     shift
     SAVE_DIR=$( readlink -f "$1" )
     shift
+  elif [ "$1" == "--email" ]; then
+    [ "$2" ] &&
+    { EMAIL_REPORTS=true
+      REPORT_EMAIL="$2"
+      shift 2; } ||
+    { usage_guide
+      exit 1; }
   elif [[ $1 =~ ^-(h|-help)$ ]]; then
     usage_guide
     exit 0
@@ -160,8 +185,8 @@ while [ $# -gt 0 ]; do
   elif [[ $1 =~ ^-(u|-user)$ ]]; then
     shift
     [ "$1" ] &&
-    AUR_USERS+=" $1"
-    shift
+    { AUR_USERS+=" $1"
+      shift; }
   elif [ "$1" == "--disable-push" ]; then
     ENABLE_PUSH=false
     shift

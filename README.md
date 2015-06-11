@@ -18,6 +18,7 @@ Usage: aurupbot [ OPTIONS ] [ PKGNAMES ]
 Options:
   -d or --dir <path>    Save files in <path> instead of /tmp.
   --disable-push        Doesn't attempt to push the updated files to AUR. 
+  --email <email>       Send reports to <email>.
   -n or --notify        Use libnotify to send desktop notifications. 
   -u or --user <user>   Check updates for all packages maintained by <user>.
   --config <file>       Source <file> for configuration.

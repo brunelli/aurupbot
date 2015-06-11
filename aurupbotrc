@@ -2,11 +2,20 @@
 ## Configuration file for AUR Update Bot
 ##
 
+## Default directory to save files
+#SAVE_DIR="$HOME/aurupbot"
+
+## Email to include on the commits (git config user.email)
+#AUTHOR_EMAIL="mail@example.com"
+
+## Email to send reports
+#REPORT_EMAIL="mail@example.com"
+
+## Email reports (uses the mail command)
+EMAIL_REPORTS=false
+
 ## Desktop notifications (uses libnotify)
 ENABLE_NOTIFY=false
 
 ## Push changes to AUR
 ENABLE_PUSH=true
-
-## Default directory to save files
-# SAVE_DIR="$HOME/aurupbot"
