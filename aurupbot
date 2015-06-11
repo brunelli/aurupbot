@@ -1,14 +1,14 @@
 #!/bin/sh
 
-            #########################################################
-            #                                                       #
-            #                    AUR Update Bot                     #
-            #                                                       #
-            #   Version: 1.0 (09/06/2015)                           #
-            #   Author: Ian Brunelli <ian@brunelli.me>              #
-            #   URL: https://github.com/ianbrunelli/aur-updatebot   #
-            #                                                       #
-            #########################################################
+              ####################################################
+              #                                                  #
+              #                  AUR Update Bot                  #
+              #                                                  #
+              #   Version: 1.0 (10/06/2015)                      #
+              #   Author: Ian Brunelli <ian@brunelli.me>         #
+              #   URL: https://github.com/ianbrunelli/aurupbot   #
+              #                                                  #
+              ####################################################
 
 aur_check_update() {
   echo "==> Checking for pkgver() function"
