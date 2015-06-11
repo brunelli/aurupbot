@@ -93,7 +93,10 @@ get_user_packages() {
 
 send_email() {
   echo "==> Sending email to $REPORT_EMAIL"
-  mail -a "$2" -s "The package $1 requires your attention" "$REPORT_EMAIL" <<< "$3"
+  hash mail 2> /dev/null &&
+  { mail -a "$2" -s "The package $1 requires your attention" "$REPORT_EMAIL" <<< "$3" ||
+    return 1; } ||
+  echo "The command mail was not found." 2>&2
 }
 
 send_notification() {
@@ -105,7 +108,10 @@ send_notification() {
     ICON="software-update-available-symbolic"
   fi
 
-  notify-send --urgency="$1" --icon="$ICON" --app-name="$SCRIPT_NAME" "$2" "$3"
+  hash notify-send 2> /dev/null &&
+  { notify-send --urgency="$1" --icon="$ICON" --app-name="$SCRIPT_NAME" "$2" "$3" ||
+    return 1; } ||
+  echo "The command notify-send was not found." 2>&2
 }
 
 update_aur() {
@@ -143,7 +149,7 @@ usage_guide() {
 }
 
 SCRIPT_NAME=$( basename "$0" )
-AUTHOR_EMAIL="$( git config user.email 2> /dev/null )"
+AUTHOR_EMAIL=$( git config user.email )
 
 EMAIL_REPORTS=false
 ENABLE_NOTIFY=false
