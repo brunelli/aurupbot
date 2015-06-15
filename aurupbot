@@ -33,16 +33,10 @@ aur_check_update() {
 build_package() {
   echo "==> Building package"
   makepkg > "$2/${1}_makepkg.log" 2>&1
+  NEW_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
 
   if [ $? != 0 ]; then
-    echo "Build failed. See \"$2/${1}_makepkg.log\" for details." 2>&2
-    if [ "$ENABLE_NOTIFY" == true ]; then
-      send_notification "critical" "Error updating $1" \
-      "Build failed. See \"$2/${1}_makepkg.log\" for details."
-    fi
-    if [ "$EMAIL_REPORTS" == true ]; then
-      send_email "$1" "$2/${1}_makepkg.log" "Build failed."
-    fi
+    error_report "$1" "Build failed." "$2/${1}_makepkg.log" "critical"
     return 2
   else
     echo "Successfully built."
@@ -57,25 +51,22 @@ check_namcap() {
   NAMCAP_WAR=$( grep -c "$1 W:" "$2/${1}_namcap.log" )
 
   if [ ${NAMCAP_ERR} -gt 0 ]; then
-    echo "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s)." \
-         "See \"$2/${1}_namcap.log\" for details." 2>&2
-    if [ "$ENABLE_NOTIFY" == true ]; then
-      send_notification "critical" "Error updating $1" \
-      "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s). See \"$2/${1}_namcap.log\" for details."
-    fi
-    if [ "$EMAIL_REPORTS" == true ]; then
-      send_email "$1" "$2/${1}_namcap.log" "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s)."
-    fi
+    error_report "$1" "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s)." \
+                 "$2/${1}_namcap.log" "critical"
     return 1
   elif [ ${NAMCAP_WAR} -gt 0 ]; then
-    echo "Namcap returned ${NAMCAP_WAR} warning(s). See \"$2/${1}_namcap.log\" for details."
-    if [ "$ENABLE_NOTIFY" == true ]; then
-      send_notification "normal" "Warning updating $1" \
-      "Namcap returned ${NAMCAP_WAR} warning(s). See \"$2/${1}_namcap.log\" for details."
-    fi
-    if [ "$EMAIL_REPORTS" == true ]; then
-      send_email "$1" "$2/${1}_namcap.log" "Namcap returned ${NAMCAP_WAR} warning(s)."
-    fi
+    error_report "$1" "Namcap returned ${NAMCAP_WAR} warning(s)." \
+                 "$2/${1}_namcap.log" "normal"
+  fi
+}
+
+error_report() {
+  echo "$2 See \"$3\" for details." 2>&2
+  if [ "$ENABLE_NOTIFY" == true ]; then
+    send_notification "$1" "$2 See \"$3\" for details." "$4"
+  fi
+  if [ "$EMAIL_REPORTS" == true ]; then
+    send_email "$1" "$2" "$3"
   fi
 }
 
@@ -100,16 +91,19 @@ send_email() {
 }
 
 send_notification() {
-  if [ "$1" == "critical" ]; then
+  if [ "$3" == "critical" ]; then
     ICON="software-update-urgent-symbolic"
-  elif [ "$1" == "normal" ]; then
+    TITLE="Error updating $1"
+  elif [ "$3" == "normal" ]; then
     ICON="dialog-warning-symbolic"
+    TITLE="Warning updating $1"
   else
     ICON="software-update-available-symbolic"
+    TITLE="Successfully updated $1"
   fi
 
   hash notify-send 2> /dev/null &&
-  { notify-send --urgency="$1" --icon="$ICON" --app-name="$SCRIPT_NAME" "$2" "$3" ||
+  { notify-send --urgency="$3" --icon="$ICON" --app-name="$SCRIPT_NAME" "$TITLE" "$2" ||
     return 1; } ||
   echo "The command notify-send was not found." 2>&2
 }
@@ -122,15 +116,7 @@ update_aur() {
                --author="AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
-  { echo "Pushing to AUR failed. See \"$2/${1}_git.log\" for details." 2>&2
-    if [ "$ENABLE_NOTIFY" == true ]; then
-      send_notification "critical" "Error updating $1" \
-      "Pushing to AUR failed. See \"$2/${1}_git.log\" for details."
-    fi
-    if [ "$EMAIL_REPORTS" == true ]; then
-      send_email "$1" "$2/${1}_git.log" "Pushing to AUR failed."
-    fi
-  }
+  error_report "$1" "Pussing to AUR failed" "$2/${1}_git" "critical"
 }
 
 usage_guide() {
@@ -154,6 +140,7 @@ AUTHOR_EMAIL=$( git config user.email )
 EMAIL_REPORTS=false
 ENABLE_NOTIFY=false
 ENABLE_PUSH=true
+REPORT_EMAIL=$AUTHOR_EMAIL
 SAVE_DIR="/tmp/$SCRIPT_NAME-$USER"
 
 [ -f "/etc/aurupbotrc" ] &&
@@ -237,14 +224,12 @@ for PKG in ${PKGS}; do
       if [ "$ENABLE_PUSH" == true ]; then
         update_aur "$PKG" "$SAVE_DIR" &&
         if [ "$ENABLE_NOTIFY" == true ]; then
-          send_notification "low" "Successfully updated $PKG" \
-          "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)."
+          send_notification "$PKG" "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)." "low"
         fi
       else
         echo -e "\nThe package was successfully updated in \"$SAVE_DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
         if [ "$ENABLE_NOTIFY" == true ]; then
-          send_notification "low" "Successfully updated $PKG" \
-          "The package was updated in \"$SAVE_DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
+          send_notification "$PKG" "The package was updated in \"$SAVE_DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)." "low"
         fi
       fi
     }
