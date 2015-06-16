@@ -20,6 +20,7 @@ Options:
   --disable-push        Doesn't attempt to push the updated files to AUR. 
   --email <email>       Send reports to <email>.
   -n or --notify        Use libnotify to send desktop notifications. 
+  --reuse-dirs 	        Don't overwrite existing directories.
   -u or --user <user>   Check updates for all packages maintained by <user>.
   --config <file>       Source <file> for configuration.
   -h or --help 	        Print this message.

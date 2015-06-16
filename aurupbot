@@ -126,6 +126,7 @@ usage_guide() {
           "\n  --disable-push \tDoesn't attempt to push the updated files to AUR." \
           "\n  --email <email> \tSend reports to <email>." \
           "\n  -n or --notify \tUse libnotify to send desktop notifications." \
+          "\n  --reuse-dirs \t\tDon't overwrite existing directories." \
           "\n  -u or --user <user> \tCheck updates for all packages maintained by <user>." \
           "\n  --config <file> \tSource <file> for configuration." \
           "\n  -h or --help \t\tPrint this message.\n" \
@@ -141,6 +142,7 @@ EMAIL_REPORTS=false
 ENABLE_NOTIFY=false
 ENABLE_PUSH=true
 REPORT_EMAIL=$AUTHOR_EMAIL
+REUSE_DIRS=false
 SAVE_DIR="/tmp/$SCRIPT_NAME-$USER"
 
 [ -f "/etc/aurupbotrc" ] &&
@@ -175,6 +177,9 @@ while [ $# -gt 0 ]; do
   elif [[ $1 =~ ^-(n|-notify)$ ]]; then
     ENABLE_NOTIFY=true
     shift
+  elif [ "$1" == "--reuse-dirs" ]; then
+    REUSE_DIRS=true
+    shift
   elif [[ $1 =~ ^-(u|-user)$ ]]; then
     shift
     [ "$1" ] &&
@@ -199,7 +204,8 @@ for AUR_USER in ${AUR_USERS}; do
 done
 
 if [ $( wc -w <<< "$PKGS" ) -gt 0 ] &&
-   [ "$SAVE_DIR" ]; then
+   [ "$SAVE_DIR" ]
+then
   mkdir -p "${SAVE_DIR}" ||
   exit 2
   cd "${SAVE_DIR}"
@@ -210,12 +216,20 @@ fi
 for PKG in ${PKGS}; do
   unset OLD_PKGVER NEW_PKGVER NAMCAP_ERR NAMCAP_WAR
 
-  [ -e "$PKG" ] &&
-  { rm -rf "$PKG" ||
-    exit 3; }
-
-  echo "==> Cloning the AUR repository for $PKG"
-  git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet &&
+  { if [ "$REUSE_DIRS" == true ] &&
+       [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
+    then
+      cd "${SAVE_DIR}/$PKG"
+      echo "==> Checking for updates"
+      git pull
+    else
+      [ -e "$PKG" ] &&
+      { rm -rf "$PKG" ||
+        exit 3; }
+      echo "==> Cloning the AUR repository for $PKG"
+      git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
+    fi
+  } &&
   { cd "${SAVE_DIR}/$PKG"
     aur_check_update "$PKG" "$SAVE_DIR" &&
     build_package "$PKG" "$SAVE_DIR" &&

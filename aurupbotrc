@@ -5,6 +5,9 @@
 ## Default directory to save files
 #SAVE_DIR="$HOME/aurupbot"
 
+## Reuse existing directories
+#REUSE_DIRS=true
+
 ## Email to include on the commits (git config user.email)
 #AUTHOR_EMAIL="mail@example.com"
 
