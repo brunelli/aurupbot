@@ -215,8 +215,8 @@ for PKG in ${PKGS}; do
     exit 3; }
 
   echo "==> Cloning the AUR repository for $PKG"
-  git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "$PKG" --quiet &&
-  { cd "$PKG"
+  git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet &&
+  { cd "${SAVE_DIR}/$PKG"
     aur_check_update "$PKG" "$SAVE_DIR" &&
     build_package "$PKG" "$SAVE_DIR" &&
     check_namcap "$PKG" "$SAVE_DIR" &&
