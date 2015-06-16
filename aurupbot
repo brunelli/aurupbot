@@ -118,7 +118,7 @@ update_aur() {
                --author="AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
-  error_report "$1" "Pussing to AUR failed" "$2/${1}_git" "critical"
+  error_report "$1" "Pushing to AUR failed" "$2/${1}_git" "critical"
 }
 
 usage_guide() {
