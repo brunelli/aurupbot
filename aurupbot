@@ -220,7 +220,7 @@ for PKG in ${PKGS}; do
        [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
     then
       cd "${SAVE_DIR}/$PKG"
-      echo "==> Checking for updates"
+      echo "==> Checking updates for $PKG"
       git pull
     else
       [ -e "$PKG" ] &&
