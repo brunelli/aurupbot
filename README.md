@@ -30,16 +30,20 @@ Configuration:
   You can have an user specific file in ~/.config/aurupbotrc.
 ```
 
+## How to install
+
+Get the package `aurupbot` from AUR.
+
 ## How it works
 
-1. Download the package repository (git)
+1. Download/update the package repository (`git`)
 
-2. Check for updates (makepkg)
+2. Check for updates (`makepkg`)
 
-3. Build new version (makepkg)
+3. Build new version (`makepkg`)
 
-4. Check package for errors (namcap)
+4. Check package for errors (`namcap`)
 
-5. Build SRCINFO file (mksrcinfo)
+5. Build SRCINFO file (`mksrcinfo`)
 
-6. Commit and push changes to AUR (git)
+6. Commit and push changes to AUR (`git`)
