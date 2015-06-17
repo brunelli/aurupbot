@@ -4,7 +4,7 @@
               #                                                  #
               #                  AUR Update Bot                  #
               #                                                  #
-              #   Version: 1.0.2 (16/06/2015)                    #
+              #   Version: 1.1 (17/06/2015)                      #
               #   Author: Ian Brunelli <ian@brunelli.me>         #
               #   URL: https://github.com/ianbrunelli/aurupbot   #
               #                                                  #
@@ -92,8 +92,7 @@ get_git_commits() {
   COMMIT_LOG=$( cd "$GIT_DIR" &&
                 { IS_GIT_DIR=$( git rev-parse --is-inside-git-dir 2> /dev/null )
                   if [ "$IS_GIT_DIR" == true ]; then
-                    git log --pretty=format:"%s (%h)" --no-decorate \
-                            --abbrev-commit --color=never ${FROM_COMMIT: -7}.. \
+                    git log --pretty=format:"%s (%h)" ${FROM_COMMIT: -7}.. \
                     2> /dev/null
                   fi; } )
   [ "$COMMIT_LOG" ] && CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
