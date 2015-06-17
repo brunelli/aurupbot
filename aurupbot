@@ -12,12 +12,14 @@
 
 aur_check_update() {
   echo "==> Checking for pkgver() function"
+
   grep -e "^[[:space:]]*pkgver[[:space:]]*([[:space:]]*)[[:space:]]*{" -i PKGBUILD \
   > /dev/null ||
   { echo "No pkgver() function found." 2>&2
     return 71; }
 
   echo "==> Getting sources"
+
   OLD_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
   makepkg -do --skipchecksums > "$2/${1}_update.log" 2>&1 ||
   { error_report "$1" "Failed running initial makepkg." "$2/${1}_update.log" "critical"
@@ -34,6 +36,7 @@ aur_check_update() {
 
 build_package() {
   echo "==> Building package"
+
   makepkg > "$2/${1}_makepkg.log" 2>&1
   NEW_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
 
@@ -47,17 +50,17 @@ build_package() {
 
 check_namcap() {
   echo "==> Checking package with namcap"
+
   namcap "$1-$NEW_PKGVER-*.pkg.tar.xz" > "$2/${1}_namcap.log" 2>&1
+  NAMCAP_E=$( grep -c "$1 E:" "$2/${1}_namcap.log" )
+  NAMCAP_W=$( grep -c "$1 W:" "$2/${1}_namcap.log" )
 
-  NAMCAP_ERR=$( grep -c "$1 E:" "$2/${1}_namcap.log" )
-  NAMCAP_WAR=$( grep -c "$1 W:" "$2/${1}_namcap.log" )
-
-  if [ ${NAMCAP_ERR} -gt 0 ]; then
-    error_report "$1" "Namcap returned ${NAMCAP_ERR} error(s) and ${NAMCAP_WAR} warning(s)." \
+  if [ ${NAMCAP_E} -gt 0 ]; then
+    error_report "$1" "Namcap returned $NAMCAP_E error(s) and $NAMCAP_W warning(s)." \
                  "$2/${1}_namcap.log" "critical"
     return 1
-  elif [ ${NAMCAP_WAR} -gt 0 ]; then
-    error_report "$1" "Namcap returned ${NAMCAP_WAR} warning(s)." \
+  elif [ ${NAMCAP_W} -gt 0 ]; then
+    error_report "$1" "Namcap returned $NAMCAP_W warning(s)." \
                  "$2/${1}_namcap.log" "normal"
   fi
 }
@@ -86,6 +89,7 @@ get_user_packages() {
 
 send_email() {
   echo "==> Sending email to $REPORT_EMAIL"
+
   hash mail 2> /dev/null &&
   { mail -a "$2" -s "The package $1 requires your attention" "$REPORT_EMAIL" <<< "$3" ||
     return 1; } ||
@@ -114,27 +118,30 @@ update_aur() {
   echo "==> Pushing new version to AUR"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
-    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." \
-               --author="AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
+    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." --author=\
+               "AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
   error_report "$1" "Pushing to AUR failed" "$2/${1}_git" "critical"
 }
 
 usage_guide() {
-  echo -e "Usage: $SCRIPT_NAME [ OPTIONS ] [ PKGNAMES ]\n" \
-          "\nOptions:" \
-          "\n  -d or --dir <path> \tSave files in <path> instead of /tmp." \
-          "\n  --disable-push \tDoesn't attempt to push the updated files to AUR." \
-          "\n  --email <email> \tSend reports to <email>." \
-          "\n  -n or --notify \tUse libnotify to send desktop notifications." \
-          "\n  --reuse-dirs \t\tDon't overwrite existing directories." \
-          "\n  -u or --user <user> \tCheck updates for all packages maintained by <user>." \
-          "\n  --config <file> \tSource <file> for configuration." \
-          "\n  -h or --help \t\tPrint this message.\n" \
-          "\nConfiguration:" \
-          "\n  The global configuration file can be found in /etc/aurupbotrc." \
-          "\n  You can have an user specific file in ~/.config/aurupbotrc."
+  cat << EOF
+Usage: $SCRIPT_NAME [ OPTIONS ] [ PKGNAMES ]
+
+Options:
+  -d or --dir <path>	Save files in <path> instead of /tmp.
+  --disable-push	Doesn't attempt to push the updated files to AUR.
+  --email <email>	Send reports to <email>.
+  -n or --notify	Use libnotify to send desktop notifications.
+  -u or --user <user>	Check updates for all packages maintained by <user>.
+  --config <file>	Source <file> for configuration.
+  -h or --help		Print this message.
+
+Configuration:
+  The global configuration file can be found in /etc/aurupbotrc.
+  You can have an user specific file in ~/.config/aurupbotrc.
+EOF
 }
 
 SCRIPT_NAME=$( basename "$0" )
@@ -240,16 +247,15 @@ for PKG in ${PKGS}; do
       if [ "$ENABLE_PUSH" == true ]; then
         update_aur "$PKG" "$SAVE_DIR" &&
         if [ "$ENABLE_NOTIFY" == true ]; then
-          send_notification "$PKG" "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)." "low"
+          send_notification "$PKG" "The package was updated and uploaded to AUR." "low"
         fi
       else
-        echo -e "\nThe package was successfully updated in \"$SAVE_DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)."
+        echo -e "\nThe package was updated in \"$SAVE_DIR/$PKG\"."
         if [ "$ENABLE_NOTIFY" == true ]; then
-          send_notification "$PKG" "The package was updated in \"$SAVE_DIR/$PKG\" ($OLD_PKGVER -> $NEW_PKGVER)." "low"
+          send_notification "$PKG" "The package was updated in \"$SAVE_DIR/$PKG\"." "low"
         fi
       fi
     }
   }
 done
-
 exit 0
