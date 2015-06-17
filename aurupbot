@@ -81,15 +81,18 @@ generate_changelog() {
 }
 
 get_git_commits() {
-  GIT_DIR=$( grep -m 1 ^"From " "$1" | cut -f 1 -d " " --complement )
-  FROM_COMMIT=$( grep -m 1 -A 1 ^"From " "$1" | tail -n 1 |
+  GIT_DIR=$( sed -n "s/^[A-Z a-z]*'*\(\/.*\)$/\1/p" "$1" | sed "s/'...$//" )
+  FROM_COMMIT=$( grep -m 1 -A 1 ^"From /" "$1" | tail -n 1 |
                  sed -n "s/[ ]*\([A-Za-z0-9]*\)\.\..*/\1/p" )
+  [ "$FROM_COMMIT" ] ||
+  FROM_COMMIT=$( head -n 1 "$1" | sed -n "s/^.* \(.*\)-[0-9]* .*$/\1/p" ) &&
   CHANGELOG=$( cd "$GIT_DIR" &&
                { IS_GIT_DIR=$( git rev-parse --is-inside-git-dir 2> /dev/null )
                  if [ "$IS_GIT_DIR" == true ]; then
                    echo -e "\n\nChangelog\n========="
                    git log --pretty=format:"%s (%h)" --no-decorate \
-                           --abbrev-commit --color=never ${FROM_COMMIT}..
+                           --abbrev-commit --color=never ${FROM_COMMIT: -7}.. \
+                   2> /dev/null
                  fi; } )
 }
 
