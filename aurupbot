@@ -217,8 +217,6 @@ elif [[ ! $AUR_USERS ]]; then
 fi
 
 for PKG in ${PKGS}; do
-  unset OLD_PKGVER NEW_PKGVER NAMCAP_ERR NAMCAP_WAR
-
   { if [ "$REUSE_DIRS" == true ] &&
        [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
     then
