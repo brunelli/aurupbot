@@ -233,6 +233,7 @@ for PKG in ${PKGS}; do
     fi
   } &&
   { cd "${SAVE_DIR}/$PKG"
+    [ -f PKGBUILD ] &&
     aur_check_update "$PKG" "$SAVE_DIR" &&
     build_package "$PKG" "$SAVE_DIR" &&
     check_namcap "$PKG" "$SAVE_DIR" &&
