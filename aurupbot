@@ -157,7 +157,7 @@ unset AUR_USERS PKGS
 
 while [ $# -gt 0 ]; do
   if [ "$1" == "--config" ]; then
-    [ "$2" ] &&
+    [ "$2" ] && ! [[ $2 =~ ^- ]] &&
     { source "$( readlink -f "$2" )"
       shift 2; } ||
     { usage_guide
@@ -167,7 +167,7 @@ while [ $# -gt 0 ]; do
     SAVE_DIR=$( readlink -f "$1" )
     shift
   elif [ "$1" == "--email" ]; then
-    [ "$2" ] &&
+    [ "$2" ] && ! [[ $2 =~ ^- ]] &&
     { EMAIL_REPORTS=true
       REPORT_EMAIL="$2"
       shift 2; } ||
@@ -183,10 +183,11 @@ while [ $# -gt 0 ]; do
     REUSE_DIRS=true
     shift
   elif [[ $1 =~ ^-(u|-user)$ ]]; then
-    shift
-    [ "$1" ] &&
-    { AUR_USERS+=" $1"
-      shift; }
+    [ "$2" ] && ! [[ $2 =~ ^- ]] &&
+    { AUR_USERS+=" $2"
+      shift 2; } ||
+    { usage_guide
+      exit 1; }
   elif [ "$1" == "--disable-push" ]; then
     ENABLE_PUSH=false
     shift
