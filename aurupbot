@@ -118,8 +118,9 @@ update_aur() {
   echo "==> Pushing new version to AUR"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
-    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." --author=\
-               "AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
+    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." \
+               --author="AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 |
+    tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
   error_report "$1" "Pushing to AUR failed" "$2/${1}_git" "critical"
