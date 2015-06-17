@@ -72,6 +72,27 @@ error_report() {
   fi
 }
 
+generate_changelog() {
+  if [[ $1 =~ -git$ ]]; then
+    get_git_commits "$2/${1}_update.log"
+  else
+    CHANGELOG=""
+  fi
+}
+
+get_git_commits() {
+  GIT_DIR=$( grep -m 1 ^"From " "$1" | cut -f 1 -d " " --complement )
+  FROM_COMMIT=$( grep -m 1 -A 1 ^"From " "$1" | tail -n 1 |
+                 sed -n "s/[ ]*\([A-Za-z0-9]*\)\.\..*/\1/p" )
+  CHANGELOG=$( cd "$GIT_DIR" &&
+               { IS_GIT_DIR=$( git rev-parse --is-inside-git-dir 2> /dev/null )
+                 if [ "$IS_GIT_DIR" == true ]; then
+                   echo -e "\n\nChangelog\n========="
+                   git log --pretty=format:"%s (%h)" --no-decorate \
+                           --abbrev-commit --color=never ${FROM_COMMIT}..
+                 fi; } )
+}
+
 get_user_packages() {
   echo "==> Getting packages maintained by $1"
 
@@ -114,7 +135,7 @@ update_aur() {
   echo "==> Pushing new version to AUR"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
-    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER)." \
+    git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER).$CHANGELOG" \
                --author="AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 | tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
@@ -239,6 +260,7 @@ for PKG in ${PKGS}; do
     check_namcap "$PKG" "$SAVE_DIR" &&
     { mksrcinfo &&
       if [ "$ENABLE_PUSH" == true ]; then
+        generate_changelog "$PKG" "$SAVE_DIR"
         update_aur "$PKG" "$SAVE_DIR" &&
         if [ "$ENABLE_NOTIFY" == true ]; then
           send_notification "$PKG" "The package $PKG was successfully updated and uploaded to AUR ($OLD_PKGVER -> $NEW_PKGVER)." "low"
