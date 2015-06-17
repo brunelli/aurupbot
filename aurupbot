@@ -86,14 +86,14 @@ get_git_commits() {
                  sed -n "s/[ ]*\([A-Za-z0-9]*\)\.\..*/\1/p" )
   [ "$FROM_COMMIT" ] ||
   FROM_COMMIT=$( head -n 1 "$1" | sed -n "s/^.* \(.*\)-[0-9]* .*$/\1/p" ) &&
-  CHANGELOG=$( cd "$GIT_DIR" &&
-               { IS_GIT_DIR=$( git rev-parse --is-inside-git-dir 2> /dev/null )
-                 if [ "$IS_GIT_DIR" == true ]; then
-                   echo -e "\n\nChangelog\n========="
-                   git log --pretty=format:"%s (%h)" --no-decorate \
-                           --abbrev-commit --color=never ${FROM_COMMIT: -7}.. \
-                   2> /dev/null
-                 fi; } )
+  COMMIT_LOG=$( cd "$GIT_DIR" &&
+                { IS_GIT_DIR=$( git rev-parse --is-inside-git-dir 2> /dev/null )
+                  if [ "$IS_GIT_DIR" == true ]; then
+                    git log --pretty=format:"%s (%h)" --no-decorate \
+                            --abbrev-commit --color=never ${FROM_COMMIT: -7}.. \
+                    2> /dev/null
+                  fi; } )
+  [ "$COMMIT_LOG" ] && CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
 }
 
 get_user_packages() {
