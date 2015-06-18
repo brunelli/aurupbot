@@ -77,8 +77,10 @@ error_report() {
 
 generate_changelog() {
   if [[ $1 =~ -bzr$ ]]; then
+    echo "==> Creating changelog from Bazaar revisions"
     get_bzr_revs "${1%-bzr}"
   elif [[ $1 =~ -git$ ]]; then
+    echo "==> Creating changelog from Git commits"
     get_git_commits "$2/${1}_update.log"
   else
     CHANGELOG=""
