@@ -76,23 +76,23 @@ error_report() {
 }
 
 generate_changelog() {
+  unset CHANGELOG
+
   if [[ $1 =~ -bzr$ ]]; then
     echo "==> Creating changelog from Bazaar revisions"
     get_bzr_revs "${1%-bzr}"
   elif [[ $1 =~ -git$ ]]; then
     echo "==> Creating changelog from Git commits"
     get_git_commits "$2/${1}_update.log"
-  else
-    CHANGELOG=""
   fi
 }
 
 get_bzr_revs() {
-  FROM_REV=$((${OLD_PKGVER: 1} + 1))
+  FROM_REV=$(( ${OLD_PKGVER: 1} + 1 ))
   REV_LOG=$( cd "$1" &&
              bzr log --log-format line -r $FROM_REV.. |
-             sed -n "s/ .*[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} / /p" )
-  [ "$REV_LOG" ] && CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
+             sed -n "s/ .*[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} / /p" ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
 }
 
 get_git_commits() {
@@ -107,8 +107,8 @@ get_git_commits() {
                     git log --pretty=format:"%s (%h)" --no-decorate \
                             --abbrev-commit --color=never ${FROM_COMMIT: -7}.. \
                     2> /dev/null
-                  fi; } )
-  [ "$COMMIT_LOG" ] && CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
+                  fi; } ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
 }
 
 get_user_packages() {
