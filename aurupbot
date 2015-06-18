@@ -76,26 +76,77 @@ error_report() {
 }
 
 generate_changelog() {
-  if [[ $1 =~ -git$ ]]; then
+  unset CHANGELOG
+
+  if [[ $1 =~ -bzr$ ]]; then
+    echo "==> Creating changelog from Bazaar revisions"
+    get_clone_dir "$1" bzr &&
+    get_bzr_revs "$1"
+  elif [[ $1 =~ -git$ ]]; then
+    echo "==> Creating changelog from Git commits"
     get_git_commits "$2/${1}_update.log"
-  else
-    CHANGELOG=""
+  elif [[ $1 =~ -hg$ ]]; then
+    echo "==> Creating changelog from Mercurial revisions"
+    get_clone_dir "$1" hg &&
+    get_hg_revs "$1"
+  elif [[ $1 =~ -svn$ ]]; then
+    echo "==> Creating changelog from Subversion revisions"
+    get_clone_dir "$1" svn &&
+    get_svn_revs "$1"
   fi
 }
 
+get_clone_dir() {
+  CLONE_DIR=$( grep -m 1 ${2}name PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+  [ -d "$CLONE_DIR/.$2" ] ||
+  CLONE_DIR=${1%-$2}
+  [ -d "$CLONE_DIR/.$2" ] ||
+  CLONE_DIR=$1
+  [ -d "$CLONE_DIR/.$2" ] ||
+  { echo "Couldn't find the $2 directory." 2>&2
+    return 1; }
+}
+
+get_bzr_revs() {
+  FROM_REV=$(( ${OLD_PKGVER: 1} + 1 ))
+  REV_LOG=$( cd "$CLONE_DIR" &&
+             bzr log --log-format line -r $FROM_REV.. |
+             sed -n "s/ .*[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} / /p" ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
+}
+
 get_git_commits() {
-  GIT_DIR=$( sed -n "s/^[A-Z a-z]*'*\(\/.*\)$/\1/p" "$1" | sed "s/'...$//" )
+  CLONE_DIR=$( sed -n "s/^[A-Z a-z]*'*\(\/.*\)$/\1/p" "$1" | sed "s/'...$//" )
   FROM_COMMIT=$( grep -m 1 -A 1 ^"From /" "$1" | tail -n 1 |
                  sed -n "s/[ ]*\([A-Za-z0-9]*\)\.\..*/\1/p" )
   [ "$FROM_COMMIT" ] ||
   FROM_COMMIT=$( head -n 1 "$1" | sed -n "s/^.* \(.*\)-[0-9]* .*$/\1/p" ) &&
-  COMMIT_LOG=$( cd "$GIT_DIR" &&
+  COMMIT_LOG=$( cd "$CLONE_DIR" &&
                 { IS_GIT_DIR=$( git rev-parse --is-inside-git-dir 2> /dev/null )
                   if [ "$IS_GIT_DIR" == true ]; then
                     git log --pretty=format:"%s (%h)" ${FROM_COMMIT: -7}.. \
                     2> /dev/null
-                  fi; } )
-  [ "$COMMIT_LOG" ] && CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
+                  fi; } ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
+}
+
+get_hg_revs() {
+  FROM_REV=$(( $( cut -f 1 -d "." <<< "${OLD_PKGVER: 1}" ) + 1 ))
+  REV_LOG=$( cd "$CLONE_DIR" &&
+             hg log --template "{desc | firstline} ({node | short})\n" \
+                    -r $FROM_REV.. | tac ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
+}
+
+get_svn_revs() {
+  FROM_REV=$((${OLD_PKGVER: 1} + 1))
+  REV_LOG=$( cd "$CLONE_DIR" &&
+             svn log -r $FROM_REV:HEAD |
+             sed "/^\s*$/d" |
+             sed -n "/^r[0-9]* | .*$/{N;p}" |
+             sed "s/^\(r[0-9]*\) | .*$/\1: /" |
+             sed ":a;N;\$!ba;s/: \n/: /g" | tac ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
 }
 
 get_user_packages() {
