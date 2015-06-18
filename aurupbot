@@ -84,6 +84,9 @@ generate_changelog() {
   elif [[ $1 =~ -git$ ]]; then
     echo "==> Creating changelog from Git commits"
     get_git_commits "$2/${1}_update.log"
+  elif [[ $1 =~ -hg$ ]]; then
+    echo "==> Creating changelog from Mercurial revisions"
+    get_hg_revs "$1"
   fi
 }
 
@@ -109,6 +112,16 @@ get_git_commits() {
                     2> /dev/null
                   fi; } ) &&
   CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
+}
+
+get_hg_revs() {
+  HG_DIR=$( grep -m 1 hgname PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+  [ "$HG_DIR" ] || HG_DIR=$1
+  FROM_REV=$((${OLD_PKGVER: 1} + 1))
+  REV_LOG=$( cd "$HG_DIR" &&
+             hg log --template "{desc | firstline} ({node | short})\n" \
+                    -r $FROM_REV.. | tac ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
 }
 
 get_user_packages() {
