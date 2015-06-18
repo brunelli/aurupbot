@@ -87,6 +87,9 @@ generate_changelog() {
   elif [[ $1 =~ -hg$ ]]; then
     echo "==> Creating changelog from Mercurial revisions"
     get_hg_revs "$1"
+  elif [[ $1 =~ -svn$ ]]; then
+    echo "==> Creating changelog from Subversion revisions"
+    get_svn_revs "$1"
   fi
 }
 
@@ -121,6 +124,19 @@ get_hg_revs() {
   REV_LOG=$( cd "$HG_DIR" &&
              hg log --template "{desc | firstline} ({node | short})\n" \
                     -r $FROM_REV.. | tac ) &&
+  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
+}
+
+get_svn_revs() {
+  SVN_DIR=$( grep -m 1 svnname PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+  [ "$SVN_DIR" ] || HG_DIR=$1
+  FROM_REV=$((${OLD_PKGVER: 1} + 1))
+  REV_LOG=$( cd "$SVN_DIR" &&
+             svn log -r $FROM_REV:HEAD |
+             sed "/^\s*$/d" |
+             sed -n "/^r[0-9]* | .*$/{N;p}" |
+             sed "s/^\(r[0-9]*\) | .*$/\1: /" |
+             sed ":a;N;\$!ba;s/: \n/: /g" | tac ) &&
   CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$REV_LOG" )
 }
 
