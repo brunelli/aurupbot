@@ -132,7 +132,7 @@ get_git_commits() {
 }
 
 get_hg_revs() {
-  FROM_REV=$((${OLD_PKGVER: 1} + 1))
+  FROM_REV=$(( $( cut -f 1 -d "." <<< "${OLD_PKGVER: 1}" ) + 1 ))
   REV_LOG=$( cd "$CLONE_DIR" &&
              hg log --template "{desc | firstline} ({node | short})\n" \
                     -r $FROM_REV.. | tac ) &&
