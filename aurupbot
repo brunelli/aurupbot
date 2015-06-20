@@ -313,7 +313,8 @@ for PKG in ${PKGS}; do
       git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
     fi
   } &&
-  { cd "${SAVE_DIR}/$PKG"
+  { rm "${SAVE_DIR}/${PKG}"_*.log
+    cd "${SAVE_DIR}/$PKG"
     [ -f PKGBUILD ] &&
     aur_check_update "$PKG" "$SAVE_DIR" &&
     build_package "$PKG" "$SAVE_DIR" &&
