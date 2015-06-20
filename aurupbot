@@ -38,12 +38,13 @@ build_package() {
   echo "==> Building package"
 
   makepkg > "$2/${1}_makepkg.log" 2>&1
-  NEW_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
 
   if [ $? != 0 ]; then
     error_report "$1" "Build failed." "$2/${1}_makepkg.log" "critical"
     return 2
   else
+    NEW_PKGVER=$( grep -m 1 -e "^[[:space:]]*pkgver" PKGBUILD |
+                  cut -f 1 -d "=" --complement | tr -d \'\" )
     echo "Successfully built."
   fi
 }
@@ -313,7 +314,7 @@ for PKG in ${PKGS}; do
       git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
     fi
   } &&
-  { rm "${SAVE_DIR}/${PKG}"_*.log
+  { rm -f "${SAVE_DIR}/${PKG}"_*.log
     cd "${SAVE_DIR}/$PKG"
     [ -f PKGBUILD ] &&
     aur_check_update "$PKG" "$SAVE_DIR" &&
