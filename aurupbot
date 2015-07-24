@@ -307,7 +307,13 @@ for PKG in ${PKGS}; do
     then
       cd "${SAVE_DIR}/$PKG"
       echo "==> Updating the AUR repository for $PKG"
-      git pull
+      git pull --quiet
+      if [[ $( git diff origin/master ) ]]; then
+        git diff origin/master > "${SAVE_DIR}/${PKG}_diff.log"
+        error_report "$PKG" "Your local branch differs from remote. Push the changes before updating." \
+                     "${SAVE_DIR}/${PKG}_diff.log" "critical"
+        continue
+      fi
     else
       [ -e "$PKG" ] &&
       { rm -rf "$PKG" ||
