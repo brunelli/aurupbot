@@ -125,16 +125,16 @@ get_clone_dir() {
 get_git_dir() {
   CLONE_DIR=$( sed -n "s/^[A-Z a-z]*'*\(\/.*\)$/\1/p" "$2" | sed "s/'\.\{3\}$//" )
   [ -d "$CLONE_DIR" ] &&
-  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  ( cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ] ) ||
   CLONE_DIR=$( grep -m 1 gitname PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
   [ -d "$CLONE_DIR" ] &&
-  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  ( cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ] ) ||
   CLONE_DIR=${1%-git}
   [ -d "$CLONE_DIR" ] &&
-  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  ( cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ] ) ||
   CLONE_DIR=$1
   [ -d "$CLONE_DIR" ] &&
-  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  ( cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ] ) ||
   { echo "Couldn't find the Git directory." 2>&2
     return 1; }
 }
