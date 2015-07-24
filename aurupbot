@@ -81,19 +81,27 @@ error_report() {
 generate_changelog() {
   unset CHANGELOG
 
-  if [[ $1 =~ -bzr$ ]]; then
+  if [[ $1 =~ -bzr$ ]] ||
+     [[ $( cat "$2/${1}_update.log" | grep "^  -> .* bzr[ \.].*$" ) ]]
+  then
     echo "==> Creating changelog from Bazaar revisions"
     get_clone_dir "$1" bzr &&
     get_bzr_revs "$1"
-  elif [[ $1 =~ -git$ ]]; then
+  elif [[ $1 =~ -git$ ]] ||
+       [[ $( cat "$2/${1}_update.log" | grep "^  -> .* git[ \.].*$" ) ]]
+  then
     echo "==> Creating changelog from Git commits"
     get_git_dir "$1" "$2/${1}_update.log" &&
     get_git_commits "$1" "$2/${1}_update.log"
-  elif [[ $1 =~ -hg$ ]]; then
+  elif [[ $1 =~ -hg$ ]] ||
+       [[ $( cat "$2/${1}_update.log" | grep "^  -> .* hg[ \.].*$" ) ]]
+  then
     echo "==> Creating changelog from Mercurial revisions"
     get_clone_dir "$1" hg &&
     get_hg_revs "$1"
-  elif [[ $1 =~ -svn$ ]]; then
+  elif [[ $1 =~ -svn$ ]] ||
+       [[ $( cat "$2/${1}_update.log" | grep "^  -> .* svn[ \.].*$" ) ]]
+  then
     echo "==> Creating changelog from Subversion revisions"
     get_clone_dir "$1" svn &&
     get_svn_revs "$1"
