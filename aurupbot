@@ -49,9 +49,14 @@ build_package() {
 check_namcap() {
   echo "==> Checking package with namcap"
 
-  namcap "$1-$NEW_PKGVER-*.pkg.tar.xz" > "$2/${1}_namcap.log" 2>&1
-  NAMCAP_E=$( grep -c "$1 E:" "$2/${1}_namcap.log" )
-  NAMCAP_W=$( grep -c "$1 W:" "$2/${1}_namcap.log" )
+  PKGNAME=$( grep -m 1 -e "^[[:space:]]*pkgname" PKGBUILD |
+             cut -f 1 -d "=" --complement | tr -d \'\"\(\) )
+
+  for P in $PKG ${PKGNAME[@]/$PKG}; do
+    namcap "$P-$NEW_PKGVER-*.pkg.tar.xz" >> "$2/${1}_namcap.log" 2>&1
+    NAMCAP_E=$(( $NAMCAP_E + $( grep -c "$P E:" "$2/${1}_namcap.log" ) ))
+    NAMCAP_W=$(( $NAMCAP_W + $( grep -c "$P W:" "$2/${1}_namcap.log" ) ))
+  done
 
   if [ ${NAMCAP_E} -gt 0 ]; then
     error_report "$1" "Namcap returned $NAMCAP_E error(s) and $NAMCAP_W warning(s)." \
