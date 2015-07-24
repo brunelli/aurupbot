@@ -20,11 +20,13 @@ aur_check_update() {
 
   echo "==> Getting sources"
 
-  OLD_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+  OLD_PKGVER=$( grep -m 1 "^[[:space:]]*pkgver" PKGBUILD |
+                cut -f 1 -d "=" --complement | tr -d \'\" )
   makepkg -do --skipchecksums > "$2/${1}_update.log" 2>&1 ||
   { error_report "$1" "Failed running initial makepkg." "$2/${1}_update.log" "critical"
     return 72; }
-  NEW_PKGVER=$( grep -m 1 pkgver PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+  NEW_PKGVER=$( grep -m 1 "^[[:space:]]*pkgver" PKGBUILD |
+                cut -f 1 -d "=" --complement | tr -d \'\" )
 
   if [ "$OLD_PKGVER" == "$NEW_PKGVER" ]; then
     echo "$1 is up-to-date ($NEW_PKGVER)."
@@ -36,17 +38,12 @@ aur_check_update() {
 
 build_package() {
   echo "==> Building package"
-
-  makepkg > "$2/${1}_makepkg.log" 2>&1
-
-  if [ $? != 0 ]; then
-    error_report "$1" "Build failed." "$2/${1}_makepkg.log" "critical"
-    return 2
-  else
-    NEW_PKGVER=$( grep -m 1 -e "^[[:space:]]*pkgver" PKGBUILD |
+  makepkg > "$2/${1}_makepkg.log" 2>&1 &&
+  { NEW_PKGVER=$( grep -m 1 -e "^[[:space:]]*pkgver" PKGBUILD |
                   cut -f 1 -d "=" --complement | tr -d \'\" )
-    echo "Successfully built."
-  fi
+    echo "Successfully built."; } ||
+  { error_report "$1" "Build failed." "$2/${1}_makepkg.log" "critical"
+    return 2; }
 }
 
 check_namcap() {
