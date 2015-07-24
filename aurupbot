@@ -22,8 +22,9 @@ aur_check_update() {
 
   OLD_PKGVER=$( grep -m 1 "^[[:space:]]*pkgver" PKGBUILD |
                 cut -f 1 -d "=" --complement | tr -d \'\" )
-  { error_report "$1" "Failed running initial makepkg." "$2/${1}_update.log" "critical"
   makepkg --nodeps --nobuild --skipchecksums > "$2/${1}_update.log" 2>&1 ||
+  { git reset --hard origin/master -q 2> /dev/null
+    error_report "$1" "Failed running initial makepkg." "$2/${1}_update.log" "critical"
     return 72; }
   NEW_PKGVER=$( grep -m 1 "^[[:space:]]*pkgver" PKGBUILD |
                 cut -f 1 -d "=" --complement | tr -d \'\" )
@@ -42,7 +43,8 @@ build_package() {
   { NEW_PKGVER=$( grep -m 1 -e "^[[:space:]]*pkgver" PKGBUILD |
                   cut -f 1 -d "=" --complement | tr -d \'\" )
     echo "Successfully built."; } ||
-  { error_report "$1" "Build failed." "$2/${1}_makepkg.log" "critical"
+  { git reset --hard origin/master -q 2> /dev/null
+    error_report "$1" "Build failed." "$2/${1}_makepkg.log" "critical"
     return 2; }
 }
 
@@ -59,6 +61,7 @@ check_namcap() {
   done
 
   if [ ${NAMCAP_E} -gt 0 ]; then
+    git reset --hard origin/master -q 2> /dev/null
     error_report "$1" "Namcap returned $NAMCAP_E error(s) and $NAMCAP_W warning(s)." \
                  "$2/${1}_namcap.log" "critical"
     return 1
@@ -230,7 +233,8 @@ update_aur() {
     tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
-  error_report "$1" "Pushing to AUR failed" "$2/${1}_git" "critical"
+  { git reset --hard origin/master -q 2> /dev/null
+    error_report "$1" "Pushing to AUR failed" "$2/${1}_git" "critical"; }
 }
 
 usage_guide() {
