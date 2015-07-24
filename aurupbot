@@ -87,6 +87,7 @@ generate_changelog() {
     get_bzr_revs "$1"
   elif [[ $1 =~ -git$ ]]; then
     echo "==> Creating changelog from Git commits"
+    get_git_dir "$1" "$2/${1}_update.log" &&
     get_git_commits "$1" "$2/${1}_update.log"
   elif [[ $1 =~ -hg$ ]]; then
     echo "==> Creating changelog from Mercurial revisions"
@@ -110,6 +111,23 @@ get_clone_dir() {
     return 1; }
 }
 
+get_git_dir() {
+  CLONE_DIR=$( sed -n "s/^[A-Z a-z]*'*\(\/.*\)$/\1/p" "$2" | sed "s/'\.\{3\}$//" )
+  [ -d "$CLONE_DIR" ] &&
+  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  CLONE_DIR=$( grep -m 1 gitname PKGBUILD | cut -f 1 -d "=" --complement | tr -d \'\" )
+  [ -d "$CLONE_DIR" ] &&
+  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  CLONE_DIR=${1%-git}
+  [ -d "$CLONE_DIR" ] &&
+  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  CLONE_DIR=$1
+  [ -d "$CLONE_DIR" ] &&
+  { cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ]; } ||
+  { echo "Couldn't find the Git directory." 2>&2
+    return 1; }
+}
+
 get_bzr_revs() {
   FROM_REV=$(( ${OLD_PKGVER: 1} + 1 ))
   REV_LOG=$( cd "$CLONE_DIR" &&
@@ -119,7 +137,6 @@ get_bzr_revs() {
 }
 
 get_git_commits() {
-  CLONE_DIR=$( sed -n "s/^[A-Z a-z]*'*\(\/.*\)$/\1/p" "$1" | sed "s/'...$//" )
   FROM_COMMIT=$( sed -n "s/^.*r[0-9][0-9]*.\([a-z0-9]*\).*$/\1/p" <<< "$OLD_PKGVER" )
   [ "$FROM_COMMIT" ] ||
   FROM_COMMIT=$( sed -n "/^From \//,/^[^ ]/p" "$1" | grep "^ " | grep " master " |
