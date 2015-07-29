@@ -95,7 +95,7 @@ generate_changelog() {
   then
     echo "==> Creating changelog from Git commits"
     get_git_dir "$1" "$2/${1}_update.log" &&
-    get_git_commits "$1" "$2/${1}_update.log"
+    get_git_commits "$2/${1}_changelog.log"
   elif [[ $1 =~ -hg$ ]] ||
        [[ $( cat "$2/${1}_update.log" | grep "^  -> .* hg[ \.].*$" ) ]]
   then
@@ -150,20 +150,21 @@ get_bzr_revs() {
 get_git_commits() {
   FROM_COMMIT=$( sed -n "s/^.*r[0-9][0-9]*.\([a-z0-9]*\).*$/\1/p" <<< "$OLD_PKGVER" )
   [ "$FROM_COMMIT" ] ||
-  FROM_COMMIT=$( sed -n "/^From \//,/^[^ ]/p" "$1" | grep "^ " | grep " master " |
+  FROM_COMMIT=$( sed -n "/^From \//,/^[^ ]/p" PKGBUILD | grep "^ " | grep " master " |
                  head -n 1 | sed -n "s/[ ]*\([A-Za-z0-9]*\)\.\..*/\1/p" )
   [ "$FROM_COMMIT" ] ||
   FROM_COMMIT=$( cd "$CLONE_DIR" &&
-                 git rev-list `git describe --tags 2> /dev/null` 2> /dev/null |
-                 head -n 1 )
+                 git rev-list `git describe --tags --abbrev=0 2> /dev/null` \
+                     -n 1 2> /dev/null )
   [ "$FROM_COMMIT" ] &&
   COMMIT_LOG=$( cd "$CLONE_DIR" &&
                 { IS_GIT_DIR=$( git rev-parse --is-inside-git-dir 2> /dev/null )
                   if [ "$IS_GIT_DIR" == true ]; then
-                    git log --pretty=format:"%s (%h)" ${FROM_COMMIT: -7}.. \
+                    git log --pretty=format:"%s (%h)" ${FROM_COMMIT}.. \
                     2> /dev/null
                   fi; } ) &&
-  CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" )
+  { cat <<< "$COMMIT_LOG" > "$1"
+    CHANGELOG=$( echo -e "\n\nChangelog\n=========\n$COMMIT_LOG" ); }
 }
 
 get_hg_revs() {
