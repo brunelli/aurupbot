@@ -4,7 +4,7 @@
               #                                                  #
               #                  AUR Update Bot                  #
               #                                                  #
-              #   Version: 1.2 (28/07/2015)                      #
+              #   Version: 1.2.1 (09/08/2015)                    #
               #   Author: Ian Brunelli <ian@brunelli.me>         #
               #   URL: https://github.com/ianbrunelli/aurupbot   #
               #                                                  #
@@ -189,7 +189,7 @@ get_svn_revs() {
 get_user_packages() {
   echo "==> Getting packages maintained by $1"
 
-  USER_PKGS=$( curl -s "https://aur4.archlinux.org/rpc.php?type=msearch&arg=$1" |
+  USER_PKGS=$( curl -s "https://aur.archlinux.org/rpc.php?type=msearch&arg=$1" |
                grep -Po '"Name":.*?[^\\],' |
                cut -f 4 -d \" )
 
@@ -351,7 +351,7 @@ for PKG in ${PKGS}; do
       { rm -rf "$PKG" ||
         exit 3; }
       echo "==> Cloning the AUR repository for $PKG"
-      git clone "ssh://aur@aur4.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
+      git clone "ssh://aur@aur.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
     fi
   } &&
   { rm -f "${SAVE_DIR}/${PKG}"_*.log
