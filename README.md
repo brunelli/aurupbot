@@ -8,7 +8,7 @@ on its PKGBUILD.
 This is very usefull when maintaining [VCS-based packages](https://wiki.archlinux.org/index.php/VCS_package_guidelines)
 that feature extremely frequent changes that typically don't require manual intervention.
 
-Requires [AUR 4](https://wiki.archlinux.org/index.php/Arch_User_Repository#AUR_4).
+[AUR 4](https://wiki.archlinux.org/index.php/Arch_User_Repository#AUR_4) compatible.
 
 ## How to use
 
