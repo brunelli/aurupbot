@@ -49,6 +49,7 @@ build_package() {
 }
 
 check_namcap() {
+  unset NAMCAP_E NAMCAP_W
   echo "==> Checking package with namcap"
 
   PKGNAME=$( grep -m 1 -e "^[[:space:]]*pkgname" PKGBUILD |
@@ -347,8 +348,8 @@ for PKG in ${PKGS}; do
         continue
       fi
     else
-      [ -e "$PKG" ] &&
-      { rm -rf "$PKG" ||
+      [ -e "${SAVE_DIR}/$PKG" ] &&
+      { rm -rf "${SAVE_DIR}/$PKG" ||
         exit 3; }
       echo "==> Cloning the AUR repository for $PKG"
       git clone "ssh://aur@aur.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
