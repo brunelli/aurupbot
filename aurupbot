@@ -191,11 +191,11 @@ get_user_packages() {
   printf "==> Getting packages maintained by $1\\n"
 
   USER_PKGS=$( curl -s "https://aur.archlinux.org/rpc.php?type=msearch&arg=$1" |
-               grep -Po '"Name":.*?[^\\],' |
-               cut -f 4 -d \" )
+               grep -Po '"PackageBase":.*?[^\\],' |
+               cut -f 4 -d \" | sort -u )
 
   [ "$USER_PKGS" ] &&
-  printf "$( wc -w <<< "$USER_PKGS" ) package(s) found:\\n$USER_PKGS\\n" ||
+  printf "$( wc -w <<< "$USER_PKGS" ) package(s) found: ${USER_PKGS//$'\n'/ }\\n" ||
   printf "No package found.\\n" 2>&2
 }
 
