@@ -39,6 +39,7 @@ aur_check_update() {
 
 build_package() {
   printf "==> Building package\\n"
+
   makepkg --force > "$2/${1}_makepkg.log" 2>&1 &&
   { NEW_PKGVER=$( grep -m 1 -e "^[[:space:]]*pkgver" PKGBUILD |
                   cut -f 1 -d "=" --complement | tr -d \'\" )
@@ -197,15 +198,13 @@ get_user_packages() {
 
   [ "$USER_PKGS" ] &&
   { printf "${#USER_PKGS[@]} package(s) found: ${USER_PKGS[*]}\\n"
-    INDEX=0
-    for P in ${USER_PKGS[@]}; do
-      for I in ${IGNORE_PKGS[@]}; do
-        if [[ "$I" == "$P" ]]; then
-          USER_IGNORED+=($P)
+    for INDEX in ${!USER_PKGS[@]}; do
+      for PKG in ${IGNORE_PKGS[@]}; do
+        if [[ "$PKG" == "${USER_PKGS[INDEX]}" ]]; then
+          USER_IGNORED+=($PKG)
           unset USER_PKGS[$INDEX]
         fi
       done
-      let INDEX++
     done
     if [ "$USER_IGNORED" ]; then
       printf "Ignoring ${#USER_IGNORED[@]} package(s): ${USER_IGNORED[*]}\\n"
@@ -242,8 +241,8 @@ send_notification() {
 }
 
 update_aur() {
-  printf "==> Pushing new version to AUR\\n"
   set -o pipefail
+  printf "==> Pushing new version to AUR\\n"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
     git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER).$CHANGELOG" \
