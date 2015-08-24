@@ -243,6 +243,7 @@ send_notification() {
 
 update_aur() {
   printf "==> Pushing new version to AUR\\n"
+  set -o pipefail
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
     git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER).$CHANGELOG" \
