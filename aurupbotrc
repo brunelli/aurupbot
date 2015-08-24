@@ -25,3 +25,6 @@ ENABLE_NOTIFY=false
 
 ## Packages to ignore (array)
 #IGNORE_PKGS=()
+
+## Disable coloring
+#NO_COLOR=true

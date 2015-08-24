@@ -11,14 +11,14 @@
               ####################################################
 
 aur_check_update() {
-  printf "==> Checking for pkgver() function\\n"
+  print_info "Checking for pkgver() function"
 
   grep -e "^[[:space:]]*pkgver[[:space:]]*([[:space:]]*)[[:space:]]*{" -i PKGBUILD \
   > /dev/null ||
-  { printf "No pkgver() function found.\\n" 2>&2
+  { printf "No pkgver() function found.\n" 2>&2
     return 71; }
 
-  printf "==> Getting sources\\n"
+  print_info "Getting sources"
 
   OLD_PKGVER=$( grep -m 1 "^[[:space:]]*pkgver" PKGBUILD |
                 cut -f 1 -d "=" --complement | tr -d \'\" )
@@ -30,20 +30,20 @@ aur_check_update() {
                 cut -f 1 -d "=" --complement | tr -d \'\" )
 
   if [ "$OLD_PKGVER" == "$NEW_PKGVER" ]; then
-    printf "$1 is up-to-date ($NEW_PKGVER).\\n"
+    printf "$1 is up-to-date ($NEW_PKGVER).\n"
     return 70
   else
-    printf "$1 is out-of-date ($OLD_PKGVER -> $NEW_PKGVER).\\n"
+    printf "$1 is out-of-date ($OLD_PKGVER -> $NEW_PKGVER).\n"
   fi
 }
 
 build_package() {
-  printf "==> Building package\\n"
+  print_info "Building package"
 
   makepkg --force > "$2/${1}_makepkg.log" 2>&1 &&
   { NEW_PKGVER=$( grep -m 1 -e "^[[:space:]]*pkgver" PKGBUILD |
                   cut -f 1 -d "=" --complement | tr -d \'\" )
-    printf "Successfully built.\\n"; } ||
+    printf "Successfully built.\n"; } ||
   { git reset --hard origin/master -q 2> /dev/null
     error_report "$1" "Build failed." "$2/${1}_makepkg.log" "critical"
     return 2; }
@@ -51,7 +51,7 @@ build_package() {
 
 check_namcap() {
   unset NAMCAP_E NAMCAP_W
-  printf "==> Checking package with namcap\\n"
+  print_info "Checking package with namcap"
 
   PKGNAME=($( grep -m 1 -e "^[[:space:]]*pkgname" PKGBUILD |
               cut -f 1 -d "=" --complement | tr -d \'\"\(\) ))
@@ -74,7 +74,7 @@ check_namcap() {
 }
 
 error_report() {
-  printf "$2 See \"$3\" for details.\\n" 2>&2
+  printf "$2 See \"$3\" for details.\n" 2>&2
   if [ "$ENABLE_NOTIFY" == true ]; then
     send_notification "$1" "$2 See \"$3\" for details." "$4"
   fi
@@ -89,25 +89,25 @@ generate_changelog() {
   if [[ $1 =~ -bzr$ ]] ||
      [[ $( cat "$2/${1}_update.log" | grep "^  -> .* bzr[ \.].*$" ) ]]
   then
-    printf "==> Creating changelog from Bazaar revisions\\n"
+    print_info "Creating changelog from Bazaar revisions"
     get_clone_dir "$1" bzr &&
     get_bzr_revs "$1"
   elif [[ $1 =~ -git$ ]] ||
        [[ $( cat "$2/${1}_update.log" | grep "^  -> .* git[ \.].*$" ) ]]
   then
-    printf "==> Creating changelog from Git commits\\n"
+    print_info "Creating changelog from Git commits"
     get_git_dir "$1" "$2/${1}_update.log" &&
     get_git_commits "$2/${1}_changelog.log"
   elif [[ $1 =~ -hg$ ]] ||
        [[ $( cat "$2/${1}_update.log" | grep "^  -> .* hg[ \.].*$" ) ]]
   then
-    printf "==> Creating changelog from Mercurial revisions\\n"
+    print_info "Creating changelog from Mercurial revisions"
     get_clone_dir "$1" hg &&
     get_hg_revs "$1"
   elif [[ $1 =~ -svn$ ]] ||
        [[ $( cat "$2/${1}_update.log" | grep "^  -> .* svn[ \.].*$" ) ]]
   then
-    printf "==> Creating changelog from Subversion revisions\\n"
+    print_info "Creating changelog from Subversion revisions"
     get_clone_dir "$1" svn &&
     get_svn_revs "$1"
   fi
@@ -120,7 +120,7 @@ get_clone_dir() {
   [ -d "$CLONE_DIR/.$2" ] ||
   CLONE_DIR=$1
   [ -d "$CLONE_DIR/.$2" ] ||
-  { printf "Couldn't find the $2 directory.\\n" 2>&2
+  { printf "Couldn't find the $2 directory.\n" 2>&2
     return 1; }
 }
 
@@ -137,7 +137,7 @@ get_git_dir() {
   CLONE_DIR=$1
   [ -d "$CLONE_DIR" ] &&
   ( cd "$CLONE_DIR"; [ "$( git rev-parse --is-inside-git-dir )" == "true" ] ) ||
-  { printf "Couldn't find the Git directory.\\n" 2>&2
+  { printf "Couldn't find the Git directory.\n" 2>&2
     return 1; }
 }
 
@@ -146,7 +146,7 @@ get_bzr_revs() {
   REV_LOG=$( cd "$CLONE_DIR" &&
              bzr log --log-format line -r $FROM_REV.. |
              sed -n "s/ .*[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} / /p" ) &&
-  CHANGELOG=$( printf "\\n\\nChangelog\\n=========\\n$REV_LOG\\n" )
+  CHANGELOG=$( printf "\n\nChangelog\n=========\n$REV_LOG\n" )
 }
 
 get_git_commits() {
@@ -166,7 +166,7 @@ get_git_commits() {
                     2> /dev/null
                   fi; } ) &&
   { cat <<< "$COMMIT_LOG" > "$1"
-    CHANGELOG=$( printf "\\n\\nChangelog\\n=========\\n$COMMIT_LOG\\n" ); }
+    CHANGELOG=$( printf "\n\nChangelog\n=========\n$COMMIT_LOG\n" ); }
 }
 
 get_hg_revs() {
@@ -174,7 +174,7 @@ get_hg_revs() {
   REV_LOG=$( cd "$CLONE_DIR" &&
              hg log --template "{desc | firstline} ({node | short})\n" \
                     -r $FROM_REV.. | tac ) &&
-  CHANGELOG=$( printf "\\n\\nChangelog\\n=========\\n$REV_LOG\\n" )
+  CHANGELOG=$( printf "\n\nChangelog\n=========\n$REV_LOG\n" )
 }
 
 get_svn_revs() {
@@ -185,19 +185,19 @@ get_svn_revs() {
              sed -n "/^r[0-9]* | .*$/{N;p}" |
              sed "s/^\(r[0-9]*\) | .*$/\1: /" |
              sed ":a;N;\$!ba;s/: \n/: /g" | tac ) &&
-  CHANGELOG=$( printf "\\n\\nChangelog\\n=========\\n$REV_LOG\\n" )
+  CHANGELOG=$( printf "\n\nChangelog\n=========\n$REV_LOG\n" )
 }
 
 get_user_packages() {
   unset USER_IGNORED
-  printf "==> Getting packages maintained by $1\\n"
+  print_info "Getting packages maintained by" " $1"
 
   USER_PKGS=($( curl -s "https://aur.archlinux.org/rpc.php?type=msearch&arg=$1" |
                 grep -Po '"PackageBase":.*?[^\\],' |
                 cut -f 4 -d \" | sort -u ))
 
   [ "$USER_PKGS" ] &&
-  { printf "${#USER_PKGS[@]} package(s) found: ${USER_PKGS[*]}\\n"
+  { printf "${#USER_PKGS[@]} package(s) found: ${USER_PKGS[*]}\n"
     for INDEX in ${!USER_PKGS[@]}; do
       for PKG in ${IGNORE_PKGS[@]}; do
         if [[ "$PKG" == "${USER_PKGS[INDEX]}" ]]; then
@@ -207,19 +207,24 @@ get_user_packages() {
       done
     done
     if [ "$USER_IGNORED" ]; then
-      printf "Ignoring ${#USER_IGNORED[@]} package(s): ${USER_IGNORED[*]}\\n"
+      printf "Ignoring ${#USER_IGNORED[@]} package(s): ${USER_IGNORED[*]}\n"
     fi
   } ||
-  printf "No package found.\\n" 2>&2
+  printf "No package found.\n" 2>&2
+}
+
+print_info() {
+  printf "${COLOR_B}:: ${COLOR_NO}${COLOR_BD}$1"
+  printf "${COLOR_B}$2${COLOR_NO}\n"
 }
 
 send_email() {
-  printf "==> Sending email to $REPORT_EMAIL\\n"
+  print_info "Sending email to" " $REPORT_EMAIL"
 
   hash mail 2> /dev/null &&
   { mail -a "$2" -s "The package $1 requires your attention" "$REPORT_EMAIL" <<< "$3" ||
     return 1; } ||
-  printf "The command mail was not found.\\n" 2>&2
+  printf "The command mail was not found.\n" 2>&2
 }
 
 send_notification() {
@@ -237,12 +242,12 @@ send_notification() {
   hash notify-send 2> /dev/null &&
   { notify-send --urgency="$3" --icon="$ICON" --app-name="$SCRIPT_NAME" "$TITLE" "$2" ||
     return 1; } ||
-  printf "The command notify-send was not found.\\n" 2>&2
+  printf "The command notify-send was not found.\n" 2>&2
 }
 
 update_aur() {
   set -o pipefail
-  printf "==> Pushing new version to AUR\\n"
+  print_info "Pushing new version to AUR"
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
     git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER).$CHANGELOG" \
@@ -263,6 +268,7 @@ Options:
   --disable-push	Doesn't attempt to push the updated files to AUR.
   --email <email>	Send reports to <email>.
   --ignore <pkg(s)>	Ignore <pkg>. Use commas to pass various pkg.
+  --nocolor		Disable coloring.
   -n or --notify	Use libnotify to send desktop notifications.
   -u or --user <user>	Check updates for all packages maintained by <user>.
   --config <file>	Source <file> for configuration.
@@ -280,6 +286,7 @@ AUTHOR_EMAIL=$( git config user.email )
 EMAIL_REPORTS=false
 ENABLE_NOTIFY=false
 ENABLE_PUSH=true
+NO_COLOR=false
 REPORT_EMAIL=$AUTHOR_EMAIL
 REUSE_DIRS=false
 SAVE_DIR="/tmp/$SCRIPT_NAME-$USER"
@@ -287,7 +294,7 @@ SAVE_DIR="/tmp/$SCRIPT_NAME-$USER"
 [ -f "$HOME/.config/aurupbotrc" ] &&
 source "$HOME/.config/aurupbotrc"
 
-unset AUR_USERS PKGS
+unset AUR_USERS PKGS COLOR_B COLOR_BD COLOR_NO
 
 while [ $# -gt 0 ]; do
   if [ "$1" == "--config" ]; then
@@ -314,6 +321,9 @@ while [ $# -gt 0 ]; do
     shift
     IGNORE_PKGS=( ${1//,/ } )
     shift
+  elif [ "$1" == "--nocolor" ]; then
+    shift
+    NO_COLOR=true
   elif [[ $1 =~ ^-(n|-notify)$ ]]; then
     ENABLE_NOTIFY=true
     shift
@@ -330,7 +340,7 @@ while [ $# -gt 0 ]; do
     ENABLE_PUSH=false
     shift
   elif [[ $1 =~ ^- ]]; then
-    printf "`basename $0`: unrecognized option '$1'\\n" >&2
+    printf "`basename $0`: unrecognized option '$1'\n" >&2
     usage_guide
     exit 1
   else
@@ -338,6 +348,12 @@ while [ $# -gt 0 ]; do
     shift
   fi
 done
+
+if [[ $NO_COLOR == false ]]; then
+  COLOR_B="\e[1;34m"
+  COLOR_BD="\e[1;29m"
+  COLOR_NO="\e[0m"
+fi
 
 for AUR_USER in ${AUR_USERS}; do
   get_user_packages "$AUR_USER"
@@ -359,7 +375,7 @@ for PKG in ${PKGS[@]}; do
        [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
     then
       cd "${SAVE_DIR}/$PKG"
-      printf "==> Updating the AUR repository for $PKG\\n"
+      print_info "Updating the AUR repository for" " $PKG"
       git pull --quiet
       if [[ $( git diff origin/master ) ]]; then
         git diff origin/master > "${SAVE_DIR}/${PKG}_diff.log"
@@ -371,7 +387,7 @@ for PKG in ${PKGS[@]}; do
       [ -e "${SAVE_DIR}/$PKG" ] &&
       { rm -rf "${SAVE_DIR}/$PKG" ||
         exit 3; }
-      printf "==> Cloning the AUR repository for $PKG\\n"
+      print_info "Cloning the AUR repository for" " $PKG"
       git clone "ssh://aur@aur.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
     fi
   } &&
@@ -389,7 +405,7 @@ for PKG in ${PKGS[@]}; do
           send_notification "$PKG" "The package was updated and uploaded to AUR." "low"
         fi
       else
-        printf "\\nThe package was updated in \"$SAVE_DIR/$PKG\".\\n"
+        printf "\nThe package was updated in \"$SAVE_DIR/$PKG\".\n"
         if [ "$ENABLE_NOTIFY" == true ]; then
           send_notification "$PKG" "The package was updated in \"$SAVE_DIR/$PKG\"." "low"
         fi
