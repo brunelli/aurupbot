@@ -52,10 +52,10 @@ check_namcap() {
   unset NAMCAP_E NAMCAP_W
   echo "==> Checking package with namcap"
 
-  PKGNAME=$( grep -m 1 -e "^[[:space:]]*pkgname" PKGBUILD |
-             cut -f 1 -d "=" --complement | tr -d \'\"\(\) )
+  PKGNAME=($( grep -m 1 -e "^[[:space:]]*pkgname" PKGBUILD |
+              cut -f 1 -d "=" --complement | tr -d \'\"\(\) ))
 
-  for P in $PKG ${PKGNAME[@]/$PKG}; do
+  for P in ${PKGNAME[@]}; do
     namcap "$P-$NEW_PKGVER-*.pkg.tar.xz" >> "$2/${1}_namcap.log" 2>&1
     NAMCAP_E=$(( $NAMCAP_E + $( grep -c "$P E:" "$2/${1}_namcap.log" ) ))
     NAMCAP_W=$(( $NAMCAP_W + $( grep -c "$P W:" "$2/${1}_namcap.log" ) ))
