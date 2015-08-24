@@ -48,18 +48,6 @@ build_package() {
     return 2; }
 }
 
-check_ignore() {
-  unset USER_IGNORED
-  for P in ${USER_PKGS[@]}; do
-    for I in ${IGNORE_PKGS[@]}; do
-      if [[ "$I" == "$P" ]]; then
-        USER_IGNORED+=($P)
-        USER_PKGS=( ${USER_PKGS[@]/$P} )
-      fi
-    done
-  done
-}
-
 check_namcap() {
   unset NAMCAP_E NAMCAP_W
   printf "==> Checking package with namcap\\n"
@@ -200,6 +188,7 @@ get_svn_revs() {
 }
 
 get_user_packages() {
+  unset USER_IGNORED
   printf "==> Getting packages maintained by $1\\n"
 
   USER_PKGS=($( curl -s "https://aur.archlinux.org/rpc.php?type=msearch&arg=$1" |
@@ -208,7 +197,16 @@ get_user_packages() {
 
   [ "$USER_PKGS" ] &&
   { printf "${#USER_PKGS[@]} package(s) found: ${USER_PKGS[*]}\\n"
-    check_ignore
+    INDEX=0
+    for P in ${USER_PKGS[@]}; do
+      for I in ${IGNORE_PKGS[@]}; do
+        if [[ "$I" == "$P" ]]; then
+          USER_IGNORED+=($P)
+          unset USER_PKGS[$INDEX]
+        fi
+      done
+      let INDEX++
+    done
     if [ "$USER_IGNORED" ]; then
       printf "Ignoring ${#USER_IGNORED[@]} package(s): ${USER_IGNORED[*]}\\n"
     fi
@@ -336,17 +334,17 @@ while [ $# -gt 0 ]; do
     usage_guide
     exit 1
   else
-    PKGS+=" $1"
+    PKGS+=($1)
     shift
   fi
 done
 
 for AUR_USER in ${AUR_USERS}; do
   get_user_packages "$AUR_USER"
-  PKGS+=" $USER_PKGS"
+  PKGS+=(${USER_PKGS[@]})
 done
 
-if [ $( wc -w <<< "$PKGS" ) -gt 0 ] &&
+if [ ${#PKGS[@]} -gt 0 ] &&
    [ "$SAVE_DIR" ]
 then
   mkdir -p "${SAVE_DIR}" ||
@@ -356,7 +354,7 @@ elif [[ ! $AUR_USERS ]]; then
   usage_guide
 fi
 
-for PKG in ${PKGS}; do
+for PKG in ${PKGS[@]}; do
   { if [ "$REUSE_DIRS" == true ] &&
        [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
     then
