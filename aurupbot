@@ -48,6 +48,15 @@ build_package() {
     return 2; }
 }
 
+check_ignore() {
+  for I in ${IGNORE_PKGS[@]}; do
+    if [[ "$I" == "$1" ]]; then
+      printf "==> The package $1 was ignored\\n"
+      return 1
+    fi
+  done
+}
+
 check_namcap() {
   unset NAMCAP_E NAMCAP_W
   printf "==> Checking package with namcap\\n"
@@ -247,6 +256,7 @@ Options:
   -d or --dir <path>	Save files in <path> instead of /tmp.
   --disable-push	Doesn't attempt to push the updated files to AUR.
   --email <email>	Send reports to <email>.
+  --ignore <pkg(s)>	Ignore <pkg>. Use commas to pass various pkg.
   -n or --notify	Use libnotify to send desktop notifications.
   -u or --user <user>	Check updates for all packages maintained by <user>.
   --config <file>	Source <file> for configuration.
@@ -294,6 +304,10 @@ while [ $# -gt 0 ]; do
   elif [[ $1 =~ ^-(h|-help)$ ]]; then
     usage_guide
     exit 0
+  elif [ "$1" == "--ignore" ]; then
+    shift
+    IGNORE_PKGS=( ${1//,/ } )
+    shift
   elif [[ $1 =~ ^-(n|-notify)$ ]]; then
     ENABLE_NOTIFY=true
     shift
@@ -335,6 +349,7 @@ elif [[ ! $AUR_USERS ]]; then
 fi
 
 for PKG in ${PKGS}; do
+  check_ignore "$PKG" || continue
   { if [ "$REUSE_DIRS" == true ] &&
        [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
     then

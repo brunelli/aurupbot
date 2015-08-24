@@ -22,3 +22,6 @@ ENABLE_NOTIFY=false
 
 ## Push changes to AUR
 #ENABLE_PUSH=true
+
+## Packages to ignore (array)
+#IGNORE_PKGS=()
