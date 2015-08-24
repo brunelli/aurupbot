@@ -49,11 +49,14 @@ build_package() {
 }
 
 check_ignore() {
-  for I in ${IGNORE_PKGS[@]}; do
-    if [[ "$I" == "$1" ]]; then
-      printf "==> The package $1 was ignored\\n"
-      return 1
-    fi
+  unset USER_IGNORED
+  for P in ${USER_PKGS[@]}; do
+    for I in ${IGNORE_PKGS[@]}; do
+      if [[ "$I" == "$P" ]]; then
+        USER_IGNORED+=($P)
+        USER_PKGS=( ${USER_PKGS[@]/$P} )
+      fi
+    done
   done
 }
 
@@ -199,12 +202,17 @@ get_svn_revs() {
 get_user_packages() {
   printf "==> Getting packages maintained by $1\\n"
 
-  USER_PKGS=$( curl -s "https://aur.archlinux.org/rpc.php?type=msearch&arg=$1" |
-               grep -Po '"PackageBase":.*?[^\\],' |
-               cut -f 4 -d \" | sort -u )
+  USER_PKGS=($( curl -s "https://aur.archlinux.org/rpc.php?type=msearch&arg=$1" |
+                grep -Po '"PackageBase":.*?[^\\],' |
+                cut -f 4 -d \" | sort -u ))
 
   [ "$USER_PKGS" ] &&
-  printf "$( wc -w <<< "$USER_PKGS" ) package(s) found: ${USER_PKGS//$'\n'/ }\\n" ||
+  { printf "${#USER_PKGS[@]} package(s) found: ${USER_PKGS[*]}\\n"
+    check_ignore
+    if [ "$USER_IGNORED" ]; then
+      printf "Ignoring ${#USER_IGNORED[@]} package(s): ${USER_IGNORED[*]}\\n"
+    fi
+  } ||
   printf "No package found.\\n" 2>&2
 }
 
@@ -349,7 +357,6 @@ elif [[ ! $AUR_USERS ]]; then
 fi
 
 for PKG in ${PKGS}; do
-  check_ignore "$PKG" || continue
   { if [ "$REUSE_DIRS" == true ] &&
        [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
     then
