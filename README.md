@@ -26,8 +26,8 @@ Options:
   -h or --help 	        Print this message.
 
 Configuration:
-  The global configuration file can be found in /etc/aurupbotrc.
-  You can have an user specific file in ~/.config/aurupbotrc.
+  You can have an user specific configuration file in ~/.config/aurupbotrc.
+  An example file can be found in /etc/aurupbotrc.
 ```
 
 ## How to install
