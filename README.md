@@ -8,8 +8,6 @@ on its PKGBUILD.
 This is very usefull when maintaining [VCS-based packages](https://wiki.archlinux.org/index.php/VCS_package_guidelines)
 that feature extremely frequent changes that typically don't require manual intervention.
 
-[AUR 4](https://wiki.archlinux.org/index.php/Arch_User_Repository#AUR_4) compatible.
-
 ## How to use
 
 ```
@@ -19,6 +17,8 @@ Options:
   -d or --dir <path>    Save files in <path> instead of /tmp.
   --disable-push        Doesn't attempt to push the updated files to AUR. 
   --email <email>       Send reports to <email>.
+  --ignore <pkg(s)>     Ignore <pkg>. Use commas to pass various pkg.
+  --nocolor             Disable coloring.
   -n or --notify        Use libnotify to send desktop notifications. 
   --reuse-dirs 	        Don't overwrite existing directories.
   -u or --user <user>   Check updates for all packages maintained by <user>.
