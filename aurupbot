@@ -192,7 +192,7 @@ get_user_packages() {
   unset USER_IGNORED
   print_info "Getting packages maintained by" " $1"
 
-  USER_PKGS=($( curl -s "https://aur.archlinux.org/rpc.php?type=msearch&arg=$1" |
+  USER_PKGS=($( curl -s "https://aur.archlinux.org/rpc/?v=5&type=search&by=maintainer&arg=$1" |
                 grep -Po '"PackageBase":.*?[^\\],' |
                 cut -f 4 -d \" | sort -u ))
 
