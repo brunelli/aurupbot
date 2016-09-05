@@ -53,6 +53,10 @@ check_namcap() {
   unset NAMCAP_E NAMCAP_W
   print_info "Checking package with namcap"
 
+  type namcap > /dev/null 2>&1 ||
+  { printf "Namcap not found. Skipping check.\n";
+    return; }
+
   PKGNAME=($( grep -m 1 -e "^[[:space:]]*pkgname" PKGBUILD |
               cut -f 1 -d "=" --complement | tr -d \'\"\(\) ))
 
