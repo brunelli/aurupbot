@@ -376,7 +376,7 @@ for PKG in ${PKGS[@]}; do
     then
       cd "${SAVE_DIR}/$PKG"
       print_info "Updating the AUR repository for" " $PKG"
-      git pull --quiet
+      git pull --quiet || continue
       if [[ $( git diff origin/master ) ]]; then
         git diff origin/master > "${SAVE_DIR}/${PKG}_diff.log"
         error_report "$PKG" "Your local branch differs from remote. Push the changes before updating." \
