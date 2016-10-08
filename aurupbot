@@ -79,10 +79,10 @@ check_namcap() {
 
 error_report() {
   printf "$2 See \"$3\" for details.\n" 2>&2
-  if [ "$ENABLE_NOTIFY" == true ]; then
+  if [ "${config[ENABLE_NOTIFY]}" == true ]; then
     send_notification "$1" "$2 See \"$3\" for details." "$4"
   fi
-  if [ "$EMAIL_REPORTS" == true ]; then
+  if [ "${config[EMAIL_REPORTS]}" == true ]; then
     send_email "$1" "$2" "$3"
   fi
 }
@@ -223,10 +223,10 @@ print_info() {
 }
 
 send_email() {
-  print_info "Sending email to" " $REPORT_EMAIL"
+  print_info "Sending email to" " ${config[REPORT_EMAIL]}"
 
   hash mail 2> /dev/null &&
-  { mail -a "$2" -s "The package $1 requires your attention" "$REPORT_EMAIL" <<< "$3" ||
+  { mail -a "$2" -s "The package $1 requires your attention" "${config[REPORT_EMAIL]}" <<< "$3" ||
     return 1; } ||
   printf "The command mail was not found.\n" 2>&2
 }
@@ -244,7 +244,7 @@ send_notification() {
   fi
 
   hash notify-send 2> /dev/null &&
-  { notify-send --urgency="$3" --icon="$ICON" --app-name="$SCRIPT_NAME" "$TITLE" "$2" ||
+  { notify-send --urgency="$3" --icon="$ICON" --app-name="${config[SCRIPT_NAME]}" "$TITLE" "$2" ||
     return 1; } ||
   printf "The command notify-send was not found.\n" 2>&2
 }
@@ -255,7 +255,7 @@ update_aur() {
 
   { git add PKGBUILD .SRCINFO 2>&1 | tee "$2/${1}_git.log" &&
     git commit -m "Updated version ($OLD_PKGVER -> $NEW_PKGVER).$CHANGELOG" \
-               --author="AUR Update Bot <$AUTHOR_EMAIL>" 2>& 1 |
+               --author="AUR Update Bot <${config[AUTHOR_EMAIL]}>" 2>& 1 |
     tee -a "$2/${1}_git.log" &&
     git push 2>&1 | tee -a "$2/${1}_git.log"
   } ||
@@ -265,7 +265,7 @@ update_aur() {
 
 usage_guide() {
   cat << EOF
-Usage: $SCRIPT_NAME [ OPTIONS ] [ PKGNAMES ]
+Usage: ${config[SCRIPT_NAME]} [ OPTIONS ] [ PKGNAMES ]
 
 Options:
   -d or --dir <path>	Save files in <path> instead of /tmp.
@@ -284,19 +284,24 @@ Configuration:
 EOF
 }
 
-SCRIPT_NAME=$( basename "$0" )
-AUTHOR_EMAIL=$( git config user.email )
-
-EMAIL_REPORTS=false
-ENABLE_NOTIFY=false
-ENABLE_PUSH=true
-NO_COLOR=false
-REPORT_EMAIL=$AUTHOR_EMAIL
-REUSE_DIRS=false
-SAVE_DIR="/tmp/$SCRIPT_NAME-$USER"
+declare -A config
+config=( [SCRIPT_NAME]=$( basename "$0" )
+         [AUTHOR_EMAIL]=$( git config user.email )
+         [REPORT_EMAIL]=$( git config user.email )
+         [EMAIL_REPORTS]=false
+         [ENABLE_NOTIFY]=false
+         [ENABLE_PUSH]=true
+         [NO_COLOR]=false
+         [REUSE_DIRS]=false
+         [SAVE_DIR]="/tmp/$( basename "$0" )-$USER" )
 
 [ -f "$HOME/.config/aurupbotrc" ] &&
-source "$HOME/.config/aurupbotrc"
+{ while read line; do
+    if grep --quiet -F "=" <<< "$line"; then
+      var=$( cut -d "=" -f 1 <<< "$line" | tr -d \  )
+      config[$var]=$( cut -d "=" -f 2- <<< "$line" | envsubst | xargs )
+    fi
+  done < "$HOME/.config/aurupbotrc"; }
 
 unset AUR_USERS PKGS COLOR_B COLOR_BD COLOR_NO
 
@@ -353,7 +358,7 @@ while [ $# -gt 0 ]; do
   fi
 done
 
-if [[ $NO_COLOR == false ]]; then
+if [[ ${config[NO_COLOR]} == false ]]; then
   COLOR_B="\e[1;34m"
   COLOR_BD="\e[1;29m"
   COLOR_NO="\e[0m"
@@ -365,56 +370,55 @@ for AUR_USER in ${AUR_USERS}; do
 done
 
 if [ ${#PKGS[@]} -gt 0 ] &&
-   [ "$SAVE_DIR" ]
+   [ "${config[SAVE_DIR]}" ]
 then
-  mkdir -p "${SAVE_DIR}" ||
+  mkdir -p "${config[SAVE_DIR]}" ||
   exit 2
-  cd "${SAVE_DIR}"
+  cd "${config[SAVE_DIR]}"
 elif [[ ! $AUR_USERS ]]; then
   usage_guide
 fi
 
 for PKG in ${PKGS[@]}; do
-  { if [ "$REUSE_DIRS" == true ] &&
-       [ -f "${SAVE_DIR}/$PKG/PKGBUILD" ]
+  { if [ "${config[REUSE_DIRS]}" == true ] &&
+       [ -f "${config[SAVE_DIR]}/$PKG/PKGBUILD" ]
     then
-      cd "${SAVE_DIR}/$PKG"
+      cd "${config[SAVE_DIR]}/$PKG"
       print_info "Updating the AUR repository for" " $PKG"
       git pull --quiet || continue
       if [[ $( git diff origin/master ) ]]; then
-        git diff origin/master > "${SAVE_DIR}/${PKG}_diff.log"
+        git diff origin/master > "${config[SAVE_DIR]}/${PKG}_diff.log"
         error_report "$PKG" "Your local branch differs from remote. Push the changes before updating." \
-                     "${SAVE_DIR}/${PKG}_diff.log" "critical"
+                     "${config[SAVE_DIR]}/${PKG}_diff.log" "critical"
         continue
       fi
     else
-      [ -e "${SAVE_DIR}/$PKG" ] &&
-      { rm -rf "${SAVE_DIR}/$PKG" ||
+      [ -e "${config[SAVE_DIR]}/$PKG" ] &&
+      { rm -rf "${config[SAVE_DIR]}/$PKG" ||
         exit 3; }
       print_info "Cloning the AUR repository for" " $PKG"
-      git clone "ssh://aur@aur.archlinux.org/$PKG.git" "${SAVE_DIR}/$PKG" --quiet
+      git clone "ssh://aur@aur.archlinux.org/$PKG.git" "${config[SAVE_DIR]}/$PKG" --quiet
     fi
   } &&
-  { rm -f "${SAVE_DIR}/${PKG}"_*.log
-    cd "${SAVE_DIR}/$PKG"
+  { rm -f "${config[SAVE_DIR]}/${PKG}"_*.log
+    cd "${config[SAVE_DIR]}/$PKG"
     [ -f PKGBUILD ] &&
-    aur_check_update "$PKG" "$SAVE_DIR" &&
-    build_package "$PKG" "$SAVE_DIR" &&
-    check_namcap "$PKG" "$SAVE_DIR" &&
+    aur_check_update "$PKG" "${config[SAVE_DIR]}" &&
+    build_package "$PKG" "${config[SAVE_DIR]}" &&
+    check_namcap "$PKG" "${config[SAVE_DIR]}" &&
     { mksrcinfo &&
-      if [ "$ENABLE_PUSH" == true ]; then
-        generate_changelog "$PKG" "$SAVE_DIR"
-        update_aur "$PKG" "$SAVE_DIR" &&
-        if [ "$ENABLE_NOTIFY" == true ]; then
+      if [ "${config[ENABLE_PUSH]}" == true ]; then
+        generate_changelog "$PKG" "${config[SAVE_DIR]}"
+        update_aur "$PKG" "${config[SAVE_DIR]}" &&
+        if [ "${config[ENABLE_NOTIFY]}" == true ]; then
           send_notification "$PKG" "The package was updated and uploaded to AUR." "low"
         fi
       else
-        printf "\nThe package was updated in \"$SAVE_DIR/$PKG\".\n"
-        if [ "$ENABLE_NOTIFY" == true ]; then
-          send_notification "$PKG" "The package was updated in \"$SAVE_DIR/$PKG\"." "low"
+        printf "\nThe package was updated in \"${config[SAVE_DIR]}/$PKG\".\n"
+        if [ "${config[ENABLE_NOTIFY]}" == true ]; then
+          send_notification "$PKG" "The package was updated in \"${config[SAVE_DIR]}/$PKG\"." "low"
         fi
       fi
     }
   }
 done
-exit 0

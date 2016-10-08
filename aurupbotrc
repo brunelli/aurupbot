@@ -3,22 +3,22 @@
 #################################################
 
 ## Default directory to save files
-#SAVE_DIR="$HOME/aurupbot"
+#SAVE_DIR=$HOME/aurupbot
 
 ## Reuse existing directories
 #REUSE_DIRS=true
 
 ## Email to include on the commits (git config user.email)
-#AUTHOR_EMAIL="mail@example.com"
+#AUTHOR_EMAIL=mail@example.com
 
 ## Email to send reports
-#REPORT_EMAIL="mail@example.com"
+#REPORT_EMAIL=mail@example.com
 
 ## Email reports (uses the mail command)
-EMAIL_REPORTS=false
+#EMAIL_REPORTS=false
 
 ## Desktop notifications (uses libnotify)
-ENABLE_NOTIFY=false
+#ENABLE_NOTIFY=false
 
 ## Push changes to AUR
 #ENABLE_PUSH=true
