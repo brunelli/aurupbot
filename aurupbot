@@ -203,7 +203,7 @@ get_user_packages() {
   [ "$USER_PKGS" ] &&
   { printf "${#USER_PKGS[@]} package(s) found: ${USER_PKGS[*]}\n"
     for INDEX in ${!USER_PKGS[@]}; do
-      for PKG in ${IGNORE_PKGS[@]}; do
+      for PKG in ${config[IGNORE_PKGS]//,/ }; do
         if [[ "$PKG" == "${USER_PKGS[INDEX]}" ]]; then
           USER_IGNORED+=($PKG)
           unset USER_PKGS[$INDEX]
@@ -247,6 +247,16 @@ send_notification() {
   { notify-send --urgency="$3" --icon="$ICON" --app-name="${config[SCRIPT_NAME]}" "$TITLE" "$2" ||
     return 1; } ||
   printf "The command notify-send was not found.\n" 2>&2
+}
+
+source_config() {
+  [ -f "$1" ] &&
+  { while read line; do
+      if grep --quiet -F "=" <<< "$line"; then
+        var=$( cut -d "=" -f 1 <<< "$line" | tr -d \  )
+        config[$var]=$( cut -d "=" -f 2- <<< "$line" | envsubst | xargs )
+      fi
+    done < "$1"; }
 }
 
 update_aur() {
@@ -295,31 +305,25 @@ config=( [SCRIPT_NAME]=$( basename "$0" )
          [REUSE_DIRS]=false
          [SAVE_DIR]="/tmp/$( basename "$0" )-$USER" )
 
-[ -f "$HOME/.config/aurupbotrc" ] &&
-{ while read line; do
-    if grep --quiet -F "=" <<< "$line"; then
-      var=$( cut -d "=" -f 1 <<< "$line" | tr -d \  )
-      config[$var]=$( cut -d "=" -f 2- <<< "$line" | envsubst | xargs )
-    fi
-  done < "$HOME/.config/aurupbotrc"; }
+source_config "$HOME/.config/aurupbotrc"
 
 unset AUR_USERS PKGS COLOR_B COLOR_BD COLOR_NO
 
 while [ $# -gt 0 ]; do
   if [ "$1" == "--config" ]; then
     [ "$2" ] && ! [[ $2 =~ ^- ]] &&
-    { source "$( readlink -f "$2" )"
+    { source_config "$( readlink -f "$2" )"
       shift 2; } ||
     { usage_guide
       exit 1; }
   elif [[ $1 =~ ^-(d|-dir)$ ]]; then
     shift
-    SAVE_DIR=$( readlink -f "$1" )
+    config[SAVE_DIR]=$( readlink -f "$1" )
     shift
   elif [ "$1" == "--email" ]; then
     [ "$2" ] && ! [[ $2 =~ ^- ]] &&
-    { EMAIL_REPORTS=true
-      REPORT_EMAIL="$2"
+    { config[EMAIL_REPORTS]=true
+      config[REPORT_EMAIL]="$2"
       shift 2; } ||
     { usage_guide
       exit 1; }
@@ -328,16 +332,16 @@ while [ $# -gt 0 ]; do
     exit 0
   elif [ "$1" == "--ignore" ]; then
     shift
-    IGNORE_PKGS=( ${1//,/ } )
+    config[IGNORE_PKGS]=$1
     shift
   elif [ "$1" == "--nocolor" ]; then
     shift
-    NO_COLOR=true
+    config[NO_COLOR]=true
   elif [[ $1 =~ ^-(n|-notify)$ ]]; then
-    ENABLE_NOTIFY=true
+    config[ENABLE_NOTIFY]=true
     shift
   elif [ "$1" == "--reuse-dirs" ]; then
-    REUSE_DIRS=true
+    config[REUSE_DIRS]=true
     shift
   elif [[ $1 =~ ^-(u|-user)$ ]]; then
     [ "$2" ] && ! [[ $2 =~ ^- ]] &&
@@ -346,7 +350,7 @@ while [ $# -gt 0 ]; do
     { usage_guide
       exit 1; }
   elif [ "$1" == "--disable-push" ]; then
-    ENABLE_PUSH=false
+    config[ENABLE_PUSH]=false
     shift
   elif [[ $1 =~ ^- ]]; then
     printf "`basename $0`: unrecognized option '$1'\n" >&2

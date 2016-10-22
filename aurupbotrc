@@ -23,8 +23,8 @@
 ## Push changes to AUR
 #ENABLE_PUSH=true
 
-## Packages to ignore (array)
-#IGNORE_PKGS=()
+## Packages to ignore (use comma as separator)
+#IGNORE_PKGS=
 
 ## Disable coloring
 #NO_COLOR=true
